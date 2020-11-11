@@ -2,6 +2,7 @@ import collections
 import itertools
 
 import Circuit
+from Circuit import ZERO
 
 
 def wallace_tree(xs, ys, circuit):
@@ -20,23 +21,23 @@ def wallace_tree(xs, ys, circuit):
 
         merged = tmp
 
-    last_carry = 0
-    result = ''
+    last_carry = ZERO
+    result = []
     for key in sorted(merged):
         xs = merged[key]
 
         if len(xs) == 1:
             x, = xs
-            sum, carry = half_adder(x, last_carry, circuit)
+            sum, carry = Circuit.half_adder(x, last_carry, circuit)
             last_carry = carry
-            result = sum + result
+            result = [sum] + result
         else:
             x, y = xs
-            sum, carry = full_adder(x, y, last_carry, circuit)
+            sum, carry = Circuit.full_adder(x, y, last_carry, circuit)
             last_carry = carry
-            result = sum + result
+            result = [sum] + result
 
-    return (last_carry + result)
+    return [last_carry] + result
 
 
 def weighted_product(xs, ys, circuit):
@@ -49,7 +50,11 @@ def weighted_product(xs, ys, circuit):
         for j, y in enumerate(ys):
             w_y = len_ys - j
 
-            yield (w_x + w_y, circuit.mult(x, y))
+            weight_sum = w_x + w_y
+            product = circuit.wire_and(x, y)
+
+            yield weight_sum, product
+
 
 def add_layer(w, xs, circuit):
     if len(xs) == 1:
@@ -57,43 +62,11 @@ def add_layer(w, xs, circuit):
 
     elif len(xs) == 2:
         x, y = xs[:2]
-        s, c = half_adder(x, y, circuit)
+        sum, carry = Circuit.half_adder(x, y, circuit)
 
-        return [(w, s), (w + 1, c)]
+        return [(w, sum), (w + 1, carry)]
 
     elif len(xs) > 2:
         x, y, z = xs[:3]
-        s, c = full_adder(x, y, z, circuit)
-        return [(w, s), (w + 1, c)] + [(w, x) for x in xs[3:]]
-
-def half_adder(x, y, circuit):
-    x_bool = x == '1'
-    y_bool = y == '1'
-
-    sum = (x_bool and (not y_bool)) or ((not x_bool) and y_bool)
-    carry = x_bool and y_bool
-
-    return bin(sum)[2:], bin(carry)[2:]
-
-def full_adder(x, y, c, circuit):
-    sum_xy, carry_1 = half_adder(x, y, circuit)
-    sum_xyc, carry_2 = half_adder(sum_xy, c, circuit)
-
-    carry = (carry_1 == '1') or (carry_2 == '1')
-    return sum_xyc, bin(carry)[2:]
-
-def n_bit_adder(xs, ys, c, circuit):
-    if not xs:
-        return propagate(ys, c, circuit)
-    elif not ys:
-        return propagate(xs, c, circuit)
-    else:
-        x = xs[-1]
-        y = ys[-1]
-        sum_xy, carry_xy = full_adder(x, y, c)
-
-        sum, carry = n_bit_adder(xs[:-1], ys[:-1], carry_xy, circuit)
-        return (sum + sum_xy), carry
-
-def propagate(xs, c, circuit):
-    return circuit.add(xs, c)
+        sum, carry = Circuit.full_adder(x, y, z, circuit)
+        return [(w, sum), (w + 1, carry)] + [(w, x) for x in xs[3:]]
