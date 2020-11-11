@@ -79,8 +79,8 @@ def run_tseitin(x, y, func):
 #     return strategy, result
 
 
-x = 1476146
-y = 13131414151
+x = 64
+y = 64
 
 print("Normal evaluation")
 run_eval(x, y, wallace_tree)
