@@ -5,20 +5,41 @@ import Tseitin
 from Multiplication import karatsuba
 
 
-def fakt_to_sat(number):
+def factoring_to_sat(number):
     bin_n = bin(number)[2:]
 
-    len_x = ceil(len(bin_n) / 2)
-    len_y = len(bin_n) - 1
+    len_x, len_y = factor_lengths(len(bin_n))
+    sym_x, sym_y = create_symbolic_input(len_x, len_y)
 
+    result, variables, clauses = mult_to_cnf(sym_x, sym_y)
+
+    clauses.union(result_equiv_number(result, bin_n))
+
+    return variables, clauses
+
+
+def factor_lengths(len_n):
+    len_x = ceil(len_n / 2)
+    len_y = len_n - 1
+
+    return len_x, len_y
+
+
+def create_symbolic_input(len_x, len_y):
     sym_x = list(range(1, len_x + 1))
     sym_y = list(range(len_x + 1, len_x + len_y + 1))
 
+    return sym_x, sym_y
+
+
+def mult_to_cnf(sym_x, sym_y):
     tseitin_strategy = Strategy.TseitinStrategy(sym_x + sym_y)
     result = karatsuba(sym_x, sym_y, tseitin_strategy)
 
-    aligned_number = '0' * (len(result) - len(bin_n)) + bin_n
-    for n, z in zip(aligned_number, result):
-        tseitin_strategy.clauses.union(Tseitin.equality(n, z))
+    return result, tseitin_strategy.variables, tseitin_strategy.clauses
 
-    return tseitin_strategy.variables, tseitin_strategy.clauses
+def result_equiv_number(result, number):
+    aligned_number = '0' * (len(result) - len(number)) + number
+
+    for n, z in zip(aligned_number, result):
+        yield Tseitin.equality(n, z)

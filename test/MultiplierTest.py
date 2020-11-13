@@ -3,9 +3,9 @@ import unittest
 from hypothesis import given, settings
 from hypothesis.strategies import integers
 
-import Gate
 import Strategy
 from Multiplication import karatsuba, wallace_tree
+from SATGenerator import create_symbolic_input
 
 
 class MultiplierTest(unittest.TestCase):
@@ -20,12 +20,12 @@ class MultiplierTest(unittest.TestCase):
 
     @given(integers(0, 10 ** 2), integers(0, 10 ** 2))
     def test_tseitin_wallace(self, x, y):
-        assert MultiplierTest.run_cnf(x, y, MultiplierTest.run_tseitin, wallace_tree) == x * y
+        assert MultiplierTest.run_cnf(x, y, wallace_tree) == x * y
 
     @given(integers(0, 10 ** 2), integers(0, 10 ** 2))
     @settings(deadline=2000)
     def test_tseitin_karatsuba(self, x, y):
-        assert MultiplierTest.run_cnf(x, y, MultiplierTest.run_tseitin, karatsuba) == x * y
+        assert MultiplierTest.run_cnf(x, y, karatsuba) == x * y
 
     @staticmethod
     def run_eval(x, y, func):
@@ -39,17 +39,18 @@ class MultiplierTest(unittest.TestCase):
         return int(bin_result, 2)
 
     @staticmethod
-    def run_cnf(x, y, func, mult):
+    def run_cnf(x, y, func):
         bin_x = bin(y)[2:]
         bin_y = bin(x)[2:]
 
-        # Variable 0 cannot be negated
-        sym_x = list(range(1, len(bin_x) + 1))
-        sym_y = list(range(len(bin_x) + 1, len(bin_x) + len(bin_y) + 1))
+        sym_x, sym_y = create_symbolic_input(len(bin_x), len(bin_y))
+        tseitin_strategy = Strategy.TseitinStrategy(sym_x + sym_y)
 
-        result, strategy = func(sym_x, sym_y, mult)
+        result = func(sym_x, sym_y, tseitin_strategy)
 
-        clauses = strategy.clauses
+        variables = tseitin_strategy.variables
+        clauses = tseitin_strategy.clauses
+
         assignment = {}
         for x, a in zip(sym_x, bin_x):
             clauses = MultiplierTest.assign(x, a == '1', clauses)
@@ -65,33 +66,12 @@ class MultiplierTest(unittest.TestCase):
             new_assignments, clauses = MultiplierTest.unit_propagation(clauses)
             assignment = {**assignment, **new_assignments}
 
-            if n == len(strategy.variables):
+            if n == len(variables):
                 return -1
 
         result = list(map(lambda x: bin(assignment[x])[2:] if not Strategy.is_constant(x) else x, result))
         bin_result = ''.join(result)
         return int(bin_result, 2)
-
-    @staticmethod
-    def run_tseitin(sym_x, sym_y, func):
-        strategy = Strategy.TseitinStrategy(sym_x + sym_y)
-        result = func(sym_x, sym_y, strategy)
-
-        return result, strategy
-
-    @staticmethod
-    def run_tseitin_circuit(sym_x, sym_y, func):
-        strategy = Strategy.CircuitStrategy()
-        circuit = func(sym_x, sym_y, strategy)
-
-        tseitin = Strategy.TseitinStrategy(sym_x + sym_y)
-
-        result = []
-        for gate in circuit:
-            gateResult = Gate.fold_tree(gate, tseitin.wire_and, tseitin.wire_or, tseitin.wire_not, lambda x: x)
-            result.append(gateResult)
-
-        return result, tseitin
 
     @staticmethod
     def unit_propagation(clauses):
