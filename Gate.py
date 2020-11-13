@@ -1,3 +1,5 @@
+import functools
+
 class Gate:
     pass
 
@@ -13,7 +15,6 @@ class OrGate(Gate):
         self.left = left
         self.right = right
 
-
 class NotGate(Gate):
     def __init__(self, input):
         self.input = input
@@ -24,6 +25,7 @@ class ValueGate(Gate):
         self.value = value
 
 
+@functools.lru_cache(maxsize=None)
 def fold_tree(gate, f_and, f_or, f_not, f_value):
     if isinstance(gate, AndGate):
         left_result = fold_tree(gate.left, f_and, f_or, f_not, f_value)

@@ -1,19 +1,35 @@
 import heapq
 import operator as op
+from typing import Protocol, TypeVar
 
 import Gate
-from Circuit import ZERO, ONE
+import Tseitin
+from Circuit import ZERO, ONE, Constant
+from Tseitin import Symbol
+
+T = TypeVar('T')
+
+
+class Strategy(Protocol[T]):
+    def wire_and(self, x: T, y: T) -> T:
+        pass
+
+    def wire_or(self, x: T, y: T) -> T:
+        pass
+
+    def wire_not(self, x: T) -> T:
+        pass
 
 
 class EvalStrategy:
 
-    def wire_and(self, x, y):
+    def wire_and(self, x: Constant, y: Constant) -> Constant:
         return bin((x == '1') and (y == '1'))[2:]
 
-    def wire_or(self, x, y):
+    def wire_or(self, x: Constant, y: Constant) -> Constant:
         return bin((x == '1') or (y == '1'))[2:]
 
-    def wire_not(self, x):
+    def wire_not(self, x: Constant) -> Constant:
         return bin(not (x == '1'))[2:]
 
 
@@ -52,7 +68,7 @@ class TseitinStrategy:
 
         self.clauses = set()
 
-    def wire_and(self, x, y):
+    def wire_and(self, x: Symbol, y: Symbol) -> Symbol:
         if is_constant(x) or is_constant(y):
             return constant_and(x, y)
         else:
@@ -60,10 +76,10 @@ class TseitinStrategy:
             z = -self.variables[0] + 1
             heapq.heappush(self.variables, -z)
 
-            self.clauses.update([frozenset([x, -z]), frozenset([y, -z]), frozenset([-x, -y, z])])
+            self.clauses.update(Tseitin.and_equality(x, y, z))
             return z
 
-    def wire_or(self, x, y):
+    def wire_or(self, x: Symbol, y: Symbol) -> Symbol:
         if is_constant(x) or is_constant(y):
             return constant_or(x, y)
         else:
@@ -71,10 +87,10 @@ class TseitinStrategy:
             z = -self.variables[0] + 1
             heapq.heappush(self.variables, -z)
 
-            self.clauses.update([frozenset([-x, y, z]), frozenset([x, -y, z]), frozenset([x, y, -z])])
+            self.clauses.update(Tseitin.or_equality(x, y, z))
             return z
 
-    def wire_not(self, x):
+    def wire_not(self, x: Symbol) -> Symbol:
         if is_constant(x):
             return constant_not(x)
         else:

@@ -1,11 +1,11 @@
 import unittest
 
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis.strategies import integers
 
+import Gate
 import Strategy
-from Karatsuba import karatsuba
-from WallaceTree import wallace_tree
+from Multiplication import karatsuba, wallace_tree
 
 
 class MultiplierTest(unittest.TestCase):
@@ -20,11 +20,12 @@ class MultiplierTest(unittest.TestCase):
 
     @given(integers(0, 10 ** 2), integers(0, 10 ** 2))
     def test_tseitin_wallace(self, x, y):
-        assert MultiplierTest.run_tseitin(x, y, wallace_tree) == x * y
+        assert MultiplierTest.run_cnf(x, y, MultiplierTest.run_tseitin, wallace_tree) == x * y
 
     @given(integers(0, 10 ** 2), integers(0, 10 ** 2))
+    @settings(deadline=2000)
     def test_tseitin_karatsuba(self, x, y):
-        assert MultiplierTest.run_tseitin(x, y, karatsuba) == x * y
+        assert MultiplierTest.run_cnf(x, y, MultiplierTest.run_tseitin, karatsuba) == x * y
 
     @staticmethod
     def run_eval(x, y, func):
@@ -38,7 +39,7 @@ class MultiplierTest(unittest.TestCase):
         return int(bin_result, 2)
 
     @staticmethod
-    def run_tseitin(x, y, func):
+    def run_cnf(x, y, func, mult):
         bin_x = bin(y)[2:]
         bin_y = bin(x)[2:]
 
@@ -46,8 +47,7 @@ class MultiplierTest(unittest.TestCase):
         sym_x = list(range(1, len(bin_x) + 1))
         sym_y = list(range(len(bin_x) + 1, len(bin_x) + len(bin_y) + 1))
 
-        strategy = Strategy.TseitinStrategy(sym_x + sym_y)
-        result = func(sym_x, sym_y, strategy)
+        result, strategy = func(sym_x, sym_y, mult)
 
         clauses = strategy.clauses
         assignment = {}
@@ -71,6 +71,27 @@ class MultiplierTest(unittest.TestCase):
         result = list(map(lambda x: bin(assignment[x])[2:] if not Strategy.is_constant(x) else x, result))
         bin_result = ''.join(result)
         return int(bin_result, 2)
+
+    @staticmethod
+    def run_tseitin(sym_x, sym_y, func):
+        strategy = Strategy.TseitinStrategy(sym_x + sym_y)
+        result = func(sym_x, sym_y, strategy)
+
+        return result, strategy
+
+    @staticmethod
+    def run_tseitin_circuit(sym_x, sym_y, func):
+        strategy = Strategy.CircuitStrategy()
+        circuit = func(sym_x, sym_y, strategy)
+
+        tseitin = Strategy.TseitinStrategy(sym_x + sym_y)
+
+        result = []
+        for gate in circuit:
+            gateResult = Gate.fold_tree(gate, tseitin.wire_and, tseitin.wire_or, tseitin.wire_not, lambda x: x)
+            result.append(gateResult)
+
+        return result, tseitin
 
     @staticmethod
     def unit_propagation(clauses):
