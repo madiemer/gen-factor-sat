@@ -13,7 +13,7 @@ class FactoringTest(unittest.TestCase):
 
     @given(integers(2, 2**10), integers(2, 2**10))
     def test_composite_number(self, x, y):
-        sym_x, sym_y, variables, clauses = factoring_to_sat(x * y)
+        variables, clauses, sym_x, sym_y = factoring_to_sat(x * y)
 
         #cnf = CNF()
         #cnf.from_string(result_to_dimacs(variables, clauses))
@@ -32,7 +32,7 @@ class FactoringTest(unittest.TestCase):
     @settings(deadline=None)
     def test_prime_number(self, n):
         assume(FactoringTest.is_prime(n))
-        sym_x, sym_y, variables, clauses = factoring_to_sat(10)
+        variables, clauses, sym_x, sym_y = factoring_to_sat(10)
 
         cnf = CNF()
         cnf.from_string(result_to_dimacs(variables, clauses))

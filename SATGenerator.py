@@ -23,7 +23,7 @@ def factoring_to_sat(number: int):
     for c in result_equiv_number(result, bin_n):
         clauses.update(c)
 
-    return sym_x, sym_y, variables, clauses
+    return variables, clauses, sym_x, sym_y
 
 
 def factor_lengths(len_n: int):

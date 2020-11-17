@@ -2,7 +2,6 @@ import heapq
 import operator as op
 from typing import Generic, TypeVar
 
-import Gate
 import Tseitin
 from Circuit import ZERO, ONE, Constant
 from Tseitin import Symbol
@@ -21,7 +20,7 @@ class Strategy(Generic[T]):
         pass
 
 
-class EvalStrategy:
+class EvalStrategy(Strategy[Constant]):
 
     def wire_and(self, x: Constant, y: Constant) -> Constant:
         return bin((x == '1') and (y == '1'))[2:]
@@ -31,33 +30,6 @@ class EvalStrategy:
 
     def wire_not(self, x: Constant) -> Constant:
         return bin(not (x == '1'))[2:]
-
-
-class CircuitStrategy:
-
-    def __init__(self):
-        self.counter = 1
-
-    def wire_and(self, x, y):
-        if is_constant(x) or is_constant(y):
-            return constant_and(x, y)
-        else:
-            self.counter += 1
-            return Gate.AndGate(x, y)
-
-    def wire_or(self, x, y):
-        if is_constant(x) or is_constant(y):
-            return constant_or(x, y)
-        else:
-            self.counter += 1
-            return Gate.OrGate(x, y)
-
-    def wire_not(self, x):
-        if is_constant(x):
-            return constant_not(x)
-        else:
-            self.counter += 1
-            return Gate.NotGate(x)
 
 
 class TseitinStrategy(Strategy[Symbol]):
