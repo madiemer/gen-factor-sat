@@ -60,7 +60,7 @@ class CircuitStrategy:
             return Gate.NotGate(x)
 
 
-class TseitinStrategy:
+class TseitinStrategy(Strategy[Symbol]):
 
     def __init__(self, variables):
         self.variables = list(map(op.neg, variables))

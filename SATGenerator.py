@@ -1,8 +1,15 @@
+import sys
 from math import ceil
+from random import Random
 
 import Strategy
 import Tseitin
 from Multiplication import karatsuba
+
+
+def generate_number(seed: int) -> int:
+    rand = Random(seed)
+    return rand.randint(2, sys.maxsize)
 
 
 def factoring_to_sat(number: int):
@@ -45,3 +52,12 @@ def result_equiv_number(result, number):
 
     for n, z in zip(aligned_number, result):
         yield Tseitin.equality(n, z)
+
+
+def result_to_dimacs(variables, clauses):
+    problem = 'p {0} {1}'.format(len(variables), len(clauses))
+    return '\n'.join([problem] + list(map(clause_to_dimacs, clauses)))
+
+
+def clause_to_dimacs(clause):
+    return ' '.join(map(str, clause)) + ' 0'

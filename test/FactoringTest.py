@@ -6,14 +6,17 @@ from hypothesis.strategies import integers
 from pysat.solvers import Glucose3
 from pysat.formula import CNF
 
-from SATGenerator import factoring_to_sat
+from SATGenerator import factoring_to_sat, result_to_dimacs
 
 
 class FactoringTest(unittest.TestCase):
 
-    @given(integers(2, 10 ** 20), integers(2, 10 ** 20))
+    @given(integers(2, 2**10), integers(2, 2**10))
     def test_composite_number(self, x, y):
-        sym_x, sym_y, variable, clauses = factoring_to_sat(x * y)
+        sym_x, sym_y, variables, clauses = factoring_to_sat(x * y)
+
+        #cnf = CNF()
+        #cnf.from_string(result_to_dimacs(variables, clauses))
 
         cnf = FactoringTest.cnf_to_pysat(clauses)
         solver = Glucose3(bootstrap_with=cnf)
@@ -26,11 +29,15 @@ class FactoringTest(unittest.TestCase):
         assert result_a * result_b == x * y, "Result a and b should contain all factors of x and y"
 
     @given(integers(5, 10**4))
+    @settings(deadline=None)
     def test_prime_number(self, n):
         assume(FactoringTest.is_prime(n))
-        sym_x, sym_y, variable, clauses = factoring_to_sat(n)
+        sym_x, sym_y, variables, clauses = factoring_to_sat(10)
 
-        cnf = FactoringTest.cnf_to_pysat(clauses)
+        cnf = CNF()
+        cnf.from_string(result_to_dimacs(variables, clauses))
+
+        # cnf = FactoringTest.cnf_to_pysat(clauses)
         solver = Glucose3(bootstrap_with=cnf)
 
         assert not solver.solve(), "The formula generated for a prime number should be in UNSAT"

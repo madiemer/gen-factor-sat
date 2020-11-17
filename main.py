@@ -4,6 +4,7 @@ import Gate
 import Strategy
 from Multiplication import karatsuba, wallace_tree
 import time
+import SATGenerator
 
 def run_eval(x, y, func):
     bin_x = bin(y)[2:]
@@ -98,6 +99,8 @@ def tseitin_circuit(circuit, variables):
 
 x = 10**10
 y = 10**10
+
+print(SATGenerator.generate_number(0))
 
 print("Normal evaluation")
 run_eval(x, y, wallace_tree)
