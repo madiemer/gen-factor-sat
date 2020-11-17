@@ -96,8 +96,8 @@ def tseitin_circuit(circuit, variables):
     return strategy, result
 
 
-x = 10**100
-y = 10**100
+x = 10**10
+y = 10**10
 
 print("Normal evaluation")
 run_eval(x, y, wallace_tree)

@@ -1,6 +1,6 @@
 import heapq
 import operator as op
-from typing import Protocol, TypeVar
+from typing import Generic, TypeVar
 
 import Gate
 import Tseitin
@@ -10,7 +10,7 @@ from Tseitin import Symbol
 T = TypeVar('T')
 
 
-class Strategy(Protocol[T]):
+class Strategy(Generic[T]):
     def wire_and(self, x: T, y: T) -> T:
         pass
 
