@@ -1,12 +1,13 @@
 import collections
 import itertools
+from typing import List, Tuple
 
 import Circuit
 from Circuit import ZERO
 from Strategy import Strategy, T
 
 
-def karatsuba(xs, ys, circuit: Strategy[T]):
+def karatsuba(xs: List[T], ys: List[T], circuit: Strategy[T]) -> List[T]:
     if len(xs) < 20 or len(ys) < 20:
         return wallace_tree(xs, ys, circuit)
 
@@ -37,7 +38,7 @@ def karatsuba(xs, ys, circuit: Strategy[T]):
     return sum
 
 
-def wallace_tree(xs, ys, circuit: Strategy[T]):
+def wallace_tree(xs: List[T], ys: List[T], circuit: Strategy[T]) -> List[T]:
     merged = collections.defaultdict(list)
 
     products = weighted_product(xs, ys, circuit)
@@ -72,7 +73,7 @@ def wallace_tree(xs, ys, circuit: Strategy[T]):
     return [last_carry] + result
 
 
-def weighted_product(xs, ys, circuit: Strategy[T]):
+def weighted_product(xs: List[T], ys: List[T], circuit: Strategy[T]):
     len_xs = len(xs)
     len_ys = len(ys)
 
@@ -88,7 +89,7 @@ def weighted_product(xs, ys, circuit: Strategy[T]):
             yield weight_sum, product
 
 
-def add_layer(w, xs, circuit: Strategy[T]):
+def add_layer(w: int, xs: List[T], circuit: Strategy[T]) -> List[Tuple[int, T]]:
     if len(xs) == 1:
         return [(w, xs[0])]
 

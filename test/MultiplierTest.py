@@ -4,8 +4,8 @@ from hypothesis import given, settings
 from hypothesis.strategies import integers
 
 import Strategy
+from FactorSat import create_symbolic_input
 from Multiplication import karatsuba, wallace_tree
-from SATGenerator import create_symbolic_input
 
 
 class MultiplierTest(unittest.TestCase):
@@ -18,14 +18,19 @@ class MultiplierTest(unittest.TestCase):
     def test_karatsuba(self, x, y):
         assert MultiplierTest.run_eval(x, y, karatsuba) == x * y
 
-    @given(integers(0, 10 ** 2), integers(0, 10 ** 2))
-    def test_tseitin_wallace(self, x, y):
-        assert MultiplierTest.run_cnf(x, y, wallace_tree) == x * y
+    def test_split(self):
+        result = MultiplierTest.run_eval(2**41, 2**20, karatsuba)
+        False
 
-    @given(integers(0, 10 ** 2), integers(0, 10 ** 2))
-    @settings(deadline=2000)
-    def test_tseitin_karatsuba(self, x, y):
-        assert MultiplierTest.run_cnf(x, y, karatsuba) == x * y
+    # @given(integers(0, 10 ** 2), integers(0, 10 ** 2))
+    # @settings(deadline=2000)
+    # def test_tseitin_wallace(self, x, y):
+    #     assert MultiplierTest.run_cnf(x, y, wallace_tree) == x * y
+    #
+    # @given(integers(0, 10 ** 2), integers(0, 10 ** 2))
+    # @settings(deadline=2000)
+    # def test_tseitin_karatsuba(self, x, y):
+    #     assert MultiplierTest.run_cnf(x, y, karatsuba) == x * y
 
     @staticmethod
     def run_eval(x, y, func):
