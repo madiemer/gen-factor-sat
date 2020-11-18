@@ -40,29 +40,33 @@ def karatsuba(xs: List[T], ys: List[T], circuit: Strategy[T]) -> List[T]:
 
 def wallace_tree(xs: List[T], ys: List[T], circuit: Strategy[T]) -> List[T]:
     products = weighted_product(xs, ys, circuit)
-    merged = group(products)
+    grouped_products = group(products)
 
-    while any(len(xs) > 2 for _, xs in merged.items()):
-        products = itertools.chain.from_iterable([add_layer(w, xs, circuit) for w, xs in merged.items()])
-        merged = group(products)
+    while any(len(xs) > 2 for _, xs in grouped_products.items()):
+        products = itertools.chain.from_iterable(
+            [add_layer(w, xs, circuit) for w, xs in grouped_products.items()]
+        )
 
-    last_carry = ZERO
+        grouped_products = group(products)
+
     result = []
-    for key in sorted(merged):
-        xs = merged[key]
+    last_carry = ZERO
+    for key in sorted(grouped_products):
+        xs = grouped_products[key]
 
         if len(xs) == 1:
             x, = xs
             sum, carry = Circuit.half_adder(x, last_carry, circuit)
             last_carry = carry
-            result = [sum] + result
+            result.append(sum)
         else:
             x, y = xs
             sum, carry = Circuit.full_adder(x, y, last_carry, circuit)
             last_carry = carry
-            result = [sum] + result
+            result.append(sum)
 
-    return [last_carry] + result
+    result.append(last_carry)
+    return result[::-1]
 
 
 def weighted_product(xs: List[T], ys: List[T], circuit: Strategy[T]):
@@ -94,6 +98,7 @@ def add_layer(w: int, xs: List[T], circuit: Strategy[T]) -> List[Tuple[int, T]]:
     elif len(xs) > 2:
         x, y, z = xs[:3]
         sum, carry = Circuit.full_adder(x, y, z, circuit)
+
         return [(w, sum), (w + 1, carry)] + [(w, x) for x in xs[3:]]
 
 

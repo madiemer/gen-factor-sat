@@ -1,4 +1,5 @@
 from typing import Union, Set, FrozenSet
+
 from Circuit import Constant
 
 Variable = int
