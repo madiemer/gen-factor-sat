@@ -3,7 +3,7 @@ import unittest
 from hypothesis import given, assume
 from hypothesis.strategies import integers
 
-import Tseitin
+from gen_factor_sat import tseitin
 
 
 class TseitinTest(unittest.TestCase):
@@ -11,13 +11,13 @@ class TseitinTest(unittest.TestCase):
     @given(integers())
     def test_duplicate_variables(self, x):
         assume(x != 0)
-        clauses = Tseitin.equality(x, x)
+        clauses = tseitin.equality(x, x)
 
         for clause in clauses:
             assert type(clause) is frozenset
             assert all(-x not in clause for x in clause)
 
-        clauses = Tseitin.equality(x, -x)
+        clauses = tseitin.equality(x, -x)
 
         for clause in clauses:
             assert type(clause) is frozenset

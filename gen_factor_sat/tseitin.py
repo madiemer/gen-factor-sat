@@ -1,6 +1,6 @@
 from typing import Union, Set, FrozenSet
 
-from Circuit import Constant
+from gen_factor_sat.circuit import Constant
 
 Variable = int
 Symbol = Union[Constant, Variable]
@@ -38,9 +38,9 @@ def or_equality(x: Variable, y: Variable, z: Variable) -> Set[Clause]:
 
 
 def not_symbol(x: Symbol) -> Symbol:
-    if type(x) is Constant:
+    if isinstance(x, Constant):
         return not_constant(x)
-    elif type(x) is Variable:
+    elif isinstance(x, Variable):
         return -x
 
 

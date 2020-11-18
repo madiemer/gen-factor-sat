@@ -4,9 +4,8 @@ from hypothesis import given, settings, assume
 from hypothesis.strategies import integers
 from pysat.formula import CNF
 from pysat.solvers import Cadical
-import time
 from random import Random
-from FactorSat import factoring_to_sat
+from gen_factor_sat.factoring_sat import factoring_to_sat
 
 
 class FactoringTest(unittest.TestCase):

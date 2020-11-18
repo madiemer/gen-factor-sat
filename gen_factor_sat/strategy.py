@@ -2,9 +2,9 @@ import heapq
 import operator as op
 from typing import Generic, TypeVar
 
-import Tseitin
-from Circuit import ZERO, ONE, Constant
-from Tseitin import Symbol
+from gen_factor_sat import tseitin
+from gen_factor_sat.circuit import ZERO, ONE, Constant
+from gen_factor_sat.tseitin import Symbol
 
 T = TypeVar('T')
 
@@ -48,7 +48,7 @@ class TseitinStrategy(Strategy[Symbol]):
             z = -self.variables[0] + 1
             heapq.heappush(self.variables, -z)
 
-            self.clauses.update(Tseitin.and_equality(x, y, z))
+            self.clauses.update(tseitin.and_equality(x, y, z))
             return z
 
     def wire_or(self, x: Symbol, y: Symbol) -> Symbol:
@@ -59,7 +59,7 @@ class TseitinStrategy(Strategy[Symbol]):
             z = -self.variables[0] + 1
             heapq.heappush(self.variables, -z)
 
-            self.clauses.update(Tseitin.or_equality(x, y, z))
+            self.clauses.update(tseitin.or_equality(x, y, z))
             return z
 
     def wire_not(self, x: Symbol) -> Symbol:
