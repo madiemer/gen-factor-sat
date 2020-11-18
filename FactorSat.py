@@ -1,4 +1,3 @@
-import dataclasses
 import random
 import sys
 from dataclasses import dataclass
@@ -19,35 +18,29 @@ class FactorSat:
     factor_2: List[Symbol]
     variables: Set[Symbol]
     clauses: Set[Clause]
+    seed: Optional[int] = None
 
     def to_dimacs(self):
-        number = 'c Number: {0}'.format(self.number)
+        if not self.seed:
+            number = 'c Number: {0}'.format(self.number)
+        else:
+            number = 'c Seed: {0} (Number: {1})'.format(self.seed, self.number)
+
         factor_1 = 'c Factor 1: {0}'.format(self.factor_1)
         factor_2 = 'c Factor 2: {0}'.format(self.factor_2)
 
-        return '\n'.join([number, factor_1, factor_2]) + result_to_dimacs(self.variables, self.clauses)
+        return '\n'.join([number, factor_1, factor_2]) + '\n' + result_to_dimacs(self.variables, self.clauses)
 
 
-@dataclass
-class SeededFactorSat(FactorSat):
-    seed: int
-
-    def to_dimacs(self):
-        seed = 'c Seed: {0} (Number: {1})'.format(self.seed, self.number)
-        factor_1 = 'c Factor 1: {0}'.format(self.factor_1)
-        factor_2 = 'c Factor 2: {0}'.format(self.factor_2)
-
-        return '\n'.join([seed, factor_1, factor_2]) + result_to_dimacs(self.variables, self.clauses)
-
-
-def generate(seed: Optional[int]) -> SeededFactorSat:
+def generate(seed: Optional[int]) -> FactorSat:
     if not seed:
         seed = random.randrange(sys.maxsize)
 
     number = generate_number(seed=seed)
     factor_sat = factoring_to_sat(number)
+    factor_sat.seed = seed
 
-    return SeededFactorSat(seed=seed, **dataclasses.asdict(factor_sat))
+    return factor_sat
 
 
 def generate_number(seed: int) -> int:
