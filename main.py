@@ -9,5 +9,8 @@ parser.add_argument('-o', '--outfile', nargs='?', type=argparse.FileType('w'), d
 
 args = parser.parse_args()
 
-result = FactorSat.generate(args.seed)
-args.outfile.write(result.to_dimacs())
+#result = FactorSat.generate(args.seed)
+
+FactorSat.factoring_to_sat(2**100)
+
+#args.outfile.write(result.to_dimacs())

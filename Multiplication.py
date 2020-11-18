@@ -1,6 +1,6 @@
 import collections
 import itertools
-from typing import List, Tuple
+from typing import List, Tuple, DefaultDict, Iterable
 
 import Circuit
 from Circuit import ZERO
@@ -21,11 +21,11 @@ def karatsuba(xs: List[T], ys: List[T], circuit: Strategy[T]) -> List[T]:
     y0 = ys[-half:]
 
     z0 = karatsuba(x0, y0, circuit)
-    z2 = karatsuba(x1, y1, circuit)
+    z2 = karatsuba(x1, y1, circuit) if x1 and y1 else ['0']
 
     # z1 = karatsuba((x1 + x0), (y1 + y0)) - z2 - z0
-    sum_x = Circuit.n_bit_adder(x1, x0, ZERO, circuit)
-    sum_y = Circuit.n_bit_adder(y1, y0, ZERO, circuit)
+    sum_x = Circuit.n_bit_adder(x1, x0, ZERO, circuit) if x1 else x0
+    sum_y = Circuit.n_bit_adder(y1, y0, ZERO, circuit) if y1 else y0
 
     z1 = karatsuba(sum_x, sum_y, circuit)
     z1 = Circuit.subtract(z1, z2, circuit)
@@ -39,20 +39,12 @@ def karatsuba(xs: List[T], ys: List[T], circuit: Strategy[T]) -> List[T]:
 
 
 def wallace_tree(xs: List[T], ys: List[T], circuit: Strategy[T]) -> List[T]:
-    merged = collections.defaultdict(list)
-
     products = weighted_product(xs, ys, circuit)
-    for w, x in products:
-        merged[w].append(x)
+    merged = group(products)
 
     while any(len(xs) > 2 for _, xs in merged.items()):
-        tmp = collections.defaultdict(list)
-
-        dicts = list(itertools.chain.from_iterable(map(lambda kv: add_layer(kv[0], kv[1], circuit), merged.items())))
-        for w, x in dicts:
-            tmp[w].append(x)
-
-        merged = tmp
+        products = itertools.chain.from_iterable([add_layer(w, xs, circuit) for w, xs in merged.items()])
+        merged = group(products)
 
     last_carry = ZERO
     result = []
@@ -94,7 +86,7 @@ def add_layer(w: int, xs: List[T], circuit: Strategy[T]) -> List[Tuple[int, T]]:
         return [(w, xs[0])]
 
     elif len(xs) == 2:
-        x, y = xs[:2]
+        x, y = xs
         sum, carry = Circuit.half_adder(x, y, circuit)
 
         return [(w, sum), (w + 1, carry)]
@@ -103,3 +95,11 @@ def add_layer(w: int, xs: List[T], circuit: Strategy[T]) -> List[Tuple[int, T]]:
         x, y, z = xs[:3]
         sum, carry = Circuit.full_adder(x, y, z, circuit)
         return [(w, sum), (w + 1, carry)] + [(w, x) for x in xs[3:]]
+
+
+def group(xs: Iterable[Tuple[int, T]]) -> DefaultDict[int, List[T]]:
+    result = collections.defaultdict(list)
+    for k, v in xs:
+        result[k].append(v)
+
+    return result

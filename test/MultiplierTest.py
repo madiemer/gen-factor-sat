@@ -1,6 +1,6 @@
 import unittest
 
-from hypothesis import given, settings
+from hypothesis import given, settings, assume
 from hypothesis.strategies import integers
 
 import Strategy
@@ -10,17 +10,18 @@ from Multiplication import karatsuba, wallace_tree
 
 class MultiplierTest(unittest.TestCase):
 
-    @given(integers(0, 10 ** 20), integers(0, 10 ** 20))
+    @given(integers(0, 2 ** 40), integers(0, 2 ** 40))
     def test_wallace(self, x, y):
         assert MultiplierTest.run_eval(x, y, wallace_tree) == x * y
 
-    @given(integers(0, 10 ** 20), integers(0, 10 ** 20))
+    @given(integers(0, 2 ** 100), integers(0, 2 ** 100))
     def test_karatsuba(self, x, y):
         assert MultiplierTest.run_eval(x, y, karatsuba) == x * y
 
-    def test_split(self):
-        result = MultiplierTest.run_eval(2**41, 2**20, karatsuba)
-        False
+    @given(integers(2**70, 2 ** 100), integers(2**20, 2 ** 50))
+    def test_split_simplification(self, x, y):
+        assume(len(bin(x)[2:]) > 2 * len(bin(y)[2:]))
+        assert MultiplierTest.run_eval(x, y, karatsuba) == x * y
 
     # @given(integers(0, 10 ** 2), integers(0, 10 ** 2))
     # @settings(deadline=2000)
