@@ -3,8 +3,7 @@ import operator as op
 from typing import Generic, TypeVar
 
 from gen_factor_sat import tseitin
-from gen_factor_sat.circuit import ZERO, ONE, Constant
-from gen_factor_sat.tseitin import Symbol
+from gen_factor_sat.tseitin import Symbol, Constant, ZERO, ONE
 
 T = TypeVar('T')
 

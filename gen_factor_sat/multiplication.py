@@ -3,8 +3,7 @@ import itertools
 from typing import List, Tuple, DefaultDict, Iterable
 
 from gen_factor_sat import circuit
-from gen_factor_sat.circuit import ZERO
-from gen_factor_sat.strategy import Strategy, T
+from gen_factor_sat.strategies import Strategy, T, ZERO
 
 
 def karatsuba(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
@@ -39,12 +38,12 @@ def karatsuba(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
 
 
 def wallace_tree(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
-    products = weighted_product(xs, ys, strategy)
+    products = _weighted_product(xs, ys, strategy)
     grouped_products = group(products)
 
     while any(len(xs) > 2 for _, xs in grouped_products.items()):
         products = itertools.chain.from_iterable(
-            [add_layer(w, xs, strategy) for w, xs in grouped_products.items()]
+            [_add_layer(w, xs, strategy) for w, xs in grouped_products.items()]
         )
 
         grouped_products = group(products)
@@ -69,7 +68,7 @@ def wallace_tree(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
     return result[::-1]
 
 
-def weighted_product(xs: List[T], ys: List[T], strategy: Strategy[T]):
+def _weighted_product(xs: List[T], ys: List[T], strategy: Strategy[T]):
     len_xs = len(xs)
     len_ys = len(ys)
 
@@ -85,7 +84,7 @@ def weighted_product(xs: List[T], ys: List[T], strategy: Strategy[T]):
             yield weight_sum, product
 
 
-def add_layer(w: int, xs: List[T], strategy: Strategy[T]) -> List[Tuple[int, T]]:
+def _add_layer(w: int, xs: List[T], strategy: Strategy[T]) -> List[Tuple[int, T]]:
     if len(xs) == 1:
         return [(w, xs[0])]
 

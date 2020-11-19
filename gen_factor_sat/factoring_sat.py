@@ -5,7 +5,7 @@ from math import ceil
 from random import Random
 from typing import List, Set, Optional, Tuple, Iterator
 
-from gen_factor_sat import strategy, tseitin
+from gen_factor_sat import strategies, tseitin
 from gen_factor_sat.multiplication import karatsuba
 from gen_factor_sat.tseitin import Symbol, Clause, Variable
 
@@ -31,26 +31,21 @@ class FactorSat:
         return '\n'.join([number, factor_1, factor_2]) + '\n' + result_to_dimacs(self.variables, self.clauses)
 
 
-def generate(seed: Optional[int]) -> FactorSat:
+def generate_factoring_to_sat(seed: Optional[int]) -> FactorSat:
     if not seed:
         seed = random.randrange(sys.maxsize)
 
-    number = generate_number(seed=seed)
+    number = _generate_number(seed=seed)
     factor_sat = factoring_to_sat(number)
     factor_sat.seed = seed
 
     return factor_sat
 
 
-def generate_number(seed: int) -> int:
-    rand = Random(seed)
-    return rand.randint(2, sys.maxsize)
-
-
 def factoring_to_sat(number: int) -> FactorSat:
     bin_n = bin(number)[2:]
 
-    len_x, len_y = factor_lengths(len(bin_n))
+    len_x, len_y = _factor_lengths(len(bin_n))
     sym_x, sym_y = create_symbolic_input(len_x, len_y)
 
     result, variables, clauses = mult_to_cnf(sym_x, sym_y)
@@ -61,7 +56,12 @@ def factoring_to_sat(number: int) -> FactorSat:
     return FactorSat(number, sym_x, sym_y, variables, clauses)
 
 
-def factor_lengths(len_n: int) -> Tuple[int, int]:
+def _generate_number(seed: int) -> int:
+    rand = Random(seed)
+    return rand.randint(2, sys.maxsize)
+
+
+def _factor_lengths(len_n: int) -> Tuple[int, int]:
     len_x = ceil(len_n / 2)
     len_y = len_n - 1
 
@@ -76,7 +76,7 @@ def create_symbolic_input(len_x: int, len_y: int) -> Tuple[List[Variable], List[
 
 
 def mult_to_cnf(sym_x: List[Variable], sym_y: List[Variable]) -> Tuple[List[Symbol], Set[Variable], Set[Clause]]:
-    tseitin_strategy = strategy.TseitinStrategy(sym_x + sym_y)
+    tseitin_strategy = strategies.TseitinStrategy(sym_x + sym_y)
     result = karatsuba(sym_x, sym_y, tseitin_strategy)
 
     return result, tseitin_strategy.variables, tseitin_strategy.clauses

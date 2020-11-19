@@ -1,11 +1,13 @@
 from typing import Union, Set, FrozenSet
 
-from gen_factor_sat.circuit import Constant
-
+Constant = str
 Variable = int
 Symbol = Union[Constant, Variable]
 
 Clause = FrozenSet[Symbol]
+
+ZERO: Constant = '0'
+ONE: Constant = '1'
 
 
 def equality(x: Symbol, y: Symbol) -> Set[Clause]:

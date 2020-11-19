@@ -1,11 +1,6 @@
 from typing import List, Tuple
 
-from gen_factor_sat.strategy import Strategy, T
-
-Constant = str
-
-ZERO = '0'
-ONE = '1'
+from gen_factor_sat.strategies import T, Strategy, ZERO, ONE
 
 
 def half_adder(x: T, y: T, strategy: Strategy[T]) -> Tuple[T, T]:

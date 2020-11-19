@@ -3,7 +3,7 @@ import unittest
 from hypothesis import given, assume
 from hypothesis.strategies import integers
 
-from gen_factor_sat import strategy
+from gen_factor_sat import strategies
 from gen_factor_sat.factoring_sat import create_symbolic_input
 from gen_factor_sat.multiplication import karatsuba, wallace_tree
 
@@ -38,7 +38,7 @@ class MultiplierTest(unittest.TestCase):
         bin_x = bin(y)[2:]
         bin_y = bin(x)[2:]
 
-        strategy = strategy.EvalStrategy()
+        strategy = strategies.EvalStrategy()
         result = func(bin_x, bin_y, strategy)
 
         bin_result = ''.join(result)
@@ -50,7 +50,7 @@ class MultiplierTest(unittest.TestCase):
         bin_y = bin(x)[2:]
 
         sym_x, sym_y = create_symbolic_input(len(bin_x), len(bin_y))
-        tseitin_strategy = strategy.TseitinStrategy(sym_x + sym_y)
+        tseitin_strategy = strategies.TseitinStrategy(sym_x + sym_y)
 
         result = func(sym_x, sym_y, tseitin_strategy)
 
@@ -75,7 +75,7 @@ class MultiplierTest(unittest.TestCase):
             if n == len(variables):
                 return -1
 
-        result = list(map(lambda x: bin(assignment[x])[2:] if not strategy.is_constant(x) else x, result))
+        result = list(map(lambda x: bin(assignment[x])[2:] if not strategies.is_constant(x) else x, result))
         bin_result = ''.join(result)
         return int(bin_result, 2)
 

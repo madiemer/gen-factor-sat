@@ -15,6 +15,6 @@ args = parser.parse_args()
 if args.number is not None:
     result = factoring_sat.factoring_to_sat(args.number)
 else:
-    result = factoring_sat.generate(args.seed)
+    result = factoring_sat.generate_factoring_to_sat(args.seed)
 
 args.outfile.write(result.to_dimacs())
