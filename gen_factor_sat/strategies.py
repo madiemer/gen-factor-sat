@@ -43,10 +43,7 @@ class TseitinStrategy(Strategy[Symbol]):
         if is_constant(x) or is_constant(y):
             return constant_and(x, y)
         else:
-            # heapq does not support a max heap => Reverse order
-            z = -self.variables[0] + 1
-            heapq.heappush(self.variables, -z)
-
+            z = self.__next_variable()
             self.clauses.update(tseitin.and_equality(x, y, z))
             return z
 
@@ -54,10 +51,7 @@ class TseitinStrategy(Strategy[Symbol]):
         if is_constant(x) or is_constant(y):
             return constant_or(x, y)
         else:
-            # heapq does not support a max heap => Reverse order
-            z = -self.variables[0] + 1
-            heapq.heappush(self.variables, -z)
-
+            z = self.__next_variable()
             self.clauses.update(tseitin.or_equality(x, y, z))
             return z
 
@@ -66,6 +60,25 @@ class TseitinStrategy(Strategy[Symbol]):
             return constant_not(x)
         else:
             return -x
+
+    def assume(self, x: Symbol, value: Constant) -> Constant:
+        if is_constant(x) and x != value:
+            z = self.__next_variable()
+            self.clauses.update(tseitin.empty_clause(z))
+        else:
+            if value == ONE:
+                self.clauses.add(frozenset([x]))
+            else:
+                self.clauses.add(frozenset([-x]))
+
+        return value
+
+    def __next_variable(self):
+        # heapq does not support a max heap => Reverse order
+        z = -self.variables[0] + 1
+        heapq.heappush(self.variables, -z)
+
+        return z
 
 
 def is_constant(x):

@@ -3,11 +3,12 @@ import sys
 from dataclasses import dataclass
 from math import ceil
 from random import Random
-from typing import List, Set, Optional, Tuple, Iterator
+from typing import List, Set, Optional, Tuple
 
-from gen_factor_sat import strategies, tseitin
+from gen_factor_sat import strategies
+from gen_factor_sat.circuit import n_bit_equality
 from gen_factor_sat.multiplication import karatsuba
-from gen_factor_sat.tseitin import Symbol, Clause, Variable
+from gen_factor_sat.tseitin import Symbol, Clause, Variable, ONE
 
 
 @dataclass
@@ -48,12 +49,12 @@ def factoring_to_sat(number: int) -> FactorSat:
     len_x, len_y = _factor_lengths(len(bin_n))
     sym_x, sym_y = create_symbolic_input(len_x, len_y)
 
-    result, variables, clauses = mult_to_cnf(sym_x, sym_y)
+    tseitin_strategy = strategies.TseitinStrategy(sym_x + sym_y)
+    mult_result = karatsuba(sym_x, sym_y, tseitin_strategy)
+    fact_result = n_bit_equality(list(bin_n), mult_result, tseitin_strategy)
+    tseitin_strategy.assume(fact_result, ONE)
 
-    for c in result_equiv_number(result, bin_n):
-        clauses.update(c)
-
-    return FactorSat(number, sym_x, sym_y, variables, clauses)
+    return FactorSat(number, sym_x, sym_y, tseitin_strategy.variables, tseitin_strategy.clauses)
 
 
 def _generate_number(seed: int) -> int:
@@ -73,20 +74,6 @@ def create_symbolic_input(len_x: int, len_y: int) -> Tuple[List[Variable], List[
     sym_y = list(range(len_x + 1, len_x + len_y + 1))
 
     return sym_x, sym_y
-
-
-def mult_to_cnf(sym_x: List[Variable], sym_y: List[Variable]) -> Tuple[List[Symbol], Set[Variable], Set[Clause]]:
-    tseitin_strategy = strategies.TseitinStrategy(sym_x + sym_y)
-    result = karatsuba(sym_x, sym_y, tseitin_strategy)
-
-    return result, tseitin_strategy.variables, tseitin_strategy.clauses
-
-
-def result_equiv_number(result: List[Symbol], number: str) -> Iterator[Set[Clause]]:
-    aligned_number = '0' * (len(result) - len(number)) + number
-
-    for n, z in zip(aligned_number, result):
-        yield tseitin.equality(n, z)
 
 
 def result_to_dimacs(variables: Set[Variable], clauses: Set[Clause]) -> str:

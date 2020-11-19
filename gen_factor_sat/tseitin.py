@@ -39,6 +39,10 @@ def or_equality(x: Variable, y: Variable, z: Variable) -> Set[Clause]:
     return set(filter(is_no_tautology, clauses))
 
 
+def empty_clause(x: Variable) -> Set[Clause]:
+    return {frozenset([x]), frozenset([-x])}
+
+
 def not_symbol(x: Symbol) -> Symbol:
     if isinstance(x, Constant):
         return not_constant(x)
