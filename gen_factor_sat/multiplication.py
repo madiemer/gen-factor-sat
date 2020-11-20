@@ -39,14 +39,14 @@ def karatsuba(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
 
 def wallace_tree(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
     products = _weighted_product(xs, ys, strategy)
-    grouped_products = group(products)
+    grouped_products = _group(products)
 
     while any(len(xs) > 2 for _, xs in grouped_products.items()):
         products = itertools.chain.from_iterable(
             [_add_layer(w, xs, strategy) for w, xs in grouped_products.items()]
         )
 
-        grouped_products = group(products)
+        grouped_products = _group(products)
 
     result = []
     last_carry = ZERO
@@ -101,7 +101,7 @@ def _add_layer(w: int, xs: List[T], strategy: Strategy[T]) -> List[Tuple[int, T]
         return [(w, sum), (w + 1, carry)] + [(w, x) for x in xs[3:]]
 
 
-def group(xs: Iterable[Tuple[int, T]]) -> DefaultDict[int, List[T]]:
+def _group(xs: Iterable[Tuple[int, T]]) -> DefaultDict[int, List[T]]:
     result = collections.defaultdict(list)
     for k, v in xs:
         result[k].append(v)

@@ -1,6 +1,6 @@
 import unittest
 
-from hypothesis import given, assume
+from hypothesis import given, assume, settings
 from hypothesis.strategies import integers
 
 from gen_factor_sat import strategies
@@ -95,8 +95,8 @@ class MultiplierTest(unittest.TestCase):
     @staticmethod
     def assign(x, value, clauses):
         u = x if value else -x
-        clauses_u = [clause for clause in clauses if u not in clause]
-        clauses_u = [[l for l in clause if l != -u] for clause in clauses_u]
+        clauses_u = list(filter(lambda clause: u not in clause, clauses))
+        clauses_u = list(map(lambda clause: list(filter(lambda l: l != -u, clause)), clauses_u))
 
         return clauses_u
 

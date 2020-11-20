@@ -3,6 +3,7 @@ import re
 
 from hypothesis import given
 from hypothesis.strategies import integers
+from gen_factor_sat.tests.test_multiplication import MultiplierTest
 
 from gen_factor_sat import factoring_sat
 

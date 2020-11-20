@@ -10,7 +10,7 @@ from gen_factor_sat.factoring_sat import factoring_to_sat
 
 class FactoringTest(unittest.TestCase):
 
-    @given(integers(2, 2 ** 15), integers(2, 2 ** 15))
+    @given(integers(2, 2 ** 25), integers(2, 2 ** 25))
     @settings(deadline=None, max_examples=10)
     def test_composite_number(self, x, y):
         factor_sat = factoring_to_sat(x * y)
@@ -26,7 +26,7 @@ class FactoringTest(unittest.TestCase):
 
         assert result_a * result_b == x * y, "Result a and b should contain all factors of x and y"
 
-    @given(integers(2, 2 ** 30))
+    @given(integers(2, 2 ** 50))
     @settings(deadline=None, max_examples=10)
     def test_prime_number(self, n):
         FactoringTest.is_prime(n)
