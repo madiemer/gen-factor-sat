@@ -75,9 +75,12 @@ class TseitinStrategy(Strategy[Symbol]):
 
     def __next_variable(self):
         # heapq does not support a max heap => Reverse order
-        z = -self.variables[0] + 1
-        heapq.heappush(self.variables, -z)
+        try:
+            z = -self.variables[0] + 1
+        except IndexError:
+            z = 1
 
+        heapq.heappush(self.variables, -z)
         return z
 
 

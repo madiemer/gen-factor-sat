@@ -8,11 +8,10 @@ from typing import List, Set, Optional, Tuple
 from gen_factor_sat import strategies
 from gen_factor_sat.circuit import n_bit_equality
 from gen_factor_sat.multiplication import karatsuba
-from gen_factor_sat.tseitin import Symbol, Clause, Variable, ONE
-
+from gen_factor_sat.tseitin import Symbol, Clause, Variable, ONE, is_no_tautology
 
 @dataclass
-class FactorSat:
+class FactoringSat:
     number: int
     factor_1: List[Symbol]
     factor_2: List[Symbol]
@@ -32,7 +31,7 @@ class FactorSat:
         return '\n'.join([number, factor_1, factor_2]) + '\n' + result_to_dimacs(self.variables, self.clauses)
 
 
-def generate_factoring_to_sat(seed: Optional[int]) -> FactorSat:
+def generate_factoring_to_sat(seed: Optional[int]) -> FactoringSat:
     if not seed:
         seed = random.randrange(sys.maxsize)
 
@@ -43,7 +42,7 @@ def generate_factoring_to_sat(seed: Optional[int]) -> FactorSat:
     return factor_sat
 
 
-def factoring_to_sat(number: int) -> FactorSat:
+def factoring_to_sat(number: int) -> FactoringSat:
     bin_n = bin(number)[2:]
 
     len_x, len_y = _factor_lengths(len(bin_n))
@@ -54,7 +53,11 @@ def factoring_to_sat(number: int) -> FactorSat:
     fact_result = n_bit_equality(list(bin_n), mult_result, tseitin_strategy)
     tseitin_strategy.assume(fact_result, ONE)
 
-    return FactorSat(number, sym_x, sym_y, tseitin_strategy.variables, tseitin_strategy.clauses)
+    # For performance reasons it is better to check all clauses at
+    # once instead of checking the clauses whenever they are added
+    clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
+
+    return FactoringSat(number, sym_x, sym_y, tseitin_strategy.variables, clauses)
 
 
 def _generate_number(seed: int) -> int:

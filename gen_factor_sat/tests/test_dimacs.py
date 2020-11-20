@@ -1,12 +1,11 @@
-import unittest
 import re
+import unittest
 
 from hypothesis import given
 from hypothesis.strategies import integers
-from gen_factor_sat.tests.test_multiplication import MultiplierTest
 
 from gen_factor_sat import factoring_sat
-
+from gen_factor_sat import tseitin
 
 class DimacsTest(unittest.TestCase):
     comment_line = re.compile('c .*')
@@ -25,9 +24,9 @@ class DimacsTest(unittest.TestCase):
         lines = dimacs.splitlines(keepends=False)
         for line in lines:
             if self.comment_line.match(line):
-                assert not problem_line, 'Comments are permitted before the problem line'
+                self.assertFalse(problem_line, 'Comments are permitted before the problem line')
             elif self.problem_line.match(line):
-                assert not problem_line, 'Only a single problem line is permitted'
+                self.assertFalse(problem_line, 'Only a single problem line is permitted')
                 problem_line = True
 
                 m = self.problem_line.match(line)
@@ -35,7 +34,7 @@ class DimacsTest(unittest.TestCase):
                 num_clauses = int(m.group('clauses'))
 
             elif self.clause_line.match(line):
-                assert problem_line, 'Clauses are permitted only after the problem line'
+                self.assertTrue(problem_line, 'Clauses are permitted only after the problem line')
 
                 clause = list(map(int, line.split(' ')[:-1]))
                 variables.update(set(map(abs, clause)))
@@ -43,7 +42,8 @@ class DimacsTest(unittest.TestCase):
             else:
                 assert not line, "Not a valid line: " + line
 
-        assert problem_line, 'There should be a cnf problem encoded'
-        assert len(variables) == num_vars, 'Every variable should occur at least once'
-        assert all(x <= num_vars for x in variables), 'Variables should be numbered from 1 to the specified number'
-        assert len(clauses) == num_clauses, 'The number of clauses should match the specified number'
+        self.assertFalse(list(filter(lambda x: not tseitin.is_no_tautology(x), clauses)))
+        self.assertTrue(problem_line, 'There should be a cnf problem encoded')
+        self.assertEqual(len(variables), num_vars, 'Every variable should occur at least once')
+        self.assertTrue(all(x <= num_vars for x in variables), 'Variables should be numbered from 1 to the specified number')
+        self.assertEqual(len(clauses), num_clauses, 'The number of clauses should match the specified number')

@@ -6,8 +6,8 @@ from gen_factor_sat import circuit
 from gen_factor_sat.strategies import Strategy, T, ZERO
 
 
-def karatsuba(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
-    if len(xs) < 20 or len(ys) < 20:
+def karatsuba(xs: List[T], ys: List[T], strategy: Strategy[T], min_len=20) -> List[T]:
+    if len(xs) < min_len or len(ys) < min_len:
         return wallace_tree(xs, ys, strategy)
 
     n = max(len(xs), len(ys))
@@ -20,7 +20,7 @@ def karatsuba(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
     y0 = ys[-half:]
 
     z0 = karatsuba(x0, y0, strategy)
-    z2 = karatsuba(x1, y1, strategy) if x1 and y1 else ['0']
+    z2 = karatsuba(x1, y1, strategy) if x1 and y1 else [ZERO]
 
     # z1 = karatsuba((x1 + x0), (y1 + y0)) - z2 - z0
     sum_x = circuit.n_bit_adder(x1, x0, ZERO, strategy) if x1 else x0

@@ -12,16 +12,16 @@ class MultiplierTest(unittest.TestCase):
 
     @given(integers(0, 2 ** 40), integers(0, 2 ** 40))
     def test_wallace(self, x, y):
-        assert MultiplierTest.run_eval(x, y, wallace_tree) == x * y
+        self.assertEqual(MultiplierTest.run_eval(x, y, wallace_tree), x * y)
 
     @given(integers(0, 2 ** 100), integers(0, 2 ** 100))
     def test_karatsuba(self, x, y):
-        assert MultiplierTest.run_eval(x, y, karatsuba) == x * y
+        self.assertEqual(MultiplierTest.run_eval(x, y, karatsuba), x * y)
 
     @given(integers(2**70, 2 ** 100), integers(2**20, 2 ** 50))
     def test_split_simplification(self, x, y):
         assume(len(bin(x)[2:]) > 2 * len(bin(y)[2:]))
-        assert MultiplierTest.run_eval(x, y, karatsuba) == x * y
+        self.assertEqual(MultiplierTest.run_eval(x, y, karatsuba), x * y)
 
     # @given(integers(0, 10 ** 2), integers(0, 10 ** 2))
     # @settings(deadline=2000)

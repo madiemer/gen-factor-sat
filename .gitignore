@@ -1,4 +1,4 @@
 .idea/
 __pycache__/
 venv/
-test/.hypothesis
+gen_factor_sat/tests/.hypothesis

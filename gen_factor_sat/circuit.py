@@ -24,6 +24,25 @@ def full_adder(x: T, y: T, c: T, strategy: Strategy[T]) -> Tuple[T, T]:
     return total_sum, carry
 
 
+# def n_bit_adder(xs: List[T], ys: List[T], c: T, strategy: Strategy[T]) -> List[T]:
+#     aligned_xs, aligned_ys = align(xs, ys)
+#
+#     carry = c
+#     result = []
+#     for i in range(len(aligned_xs)):
+#         x = aligned_xs[-(i+1)]
+#         y = aligned_ys[-(i+1)]
+#
+#         sum_xy, carry_xy = full_adder(x, y, carry, strategy)
+#
+#         carry = carry_xy
+#         result.append(sum_xy)
+#
+#     result.append(carry)
+#     result.reverse()
+#     return result
+
+
 def n_bit_adder(xs: List[T], ys: List[T], c: T, strategy: Strategy[T]) -> List[T]:
     if not xs:
         return propagate(ys, c, strategy)
