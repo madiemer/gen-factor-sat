@@ -2,12 +2,12 @@ import pytest
 from pysat.formula import CNF
 from pysat.solvers import Cadical
 
-from gen_factor_sat.factoring_sat import factoring_to_sat, generate_factoring_to_sat
+from gen_factor_sat.factoring_sat import factorize_number, factorize_random_number
 
 
 def test_reproducibility():
-    factoring_1 = generate_factoring_to_sat(213198414)
-    factoring_2 = generate_factoring_to_sat(213198414)
+    factoring_1 = factorize_random_number(213198414)
+    factoring_2 = factorize_random_number(213198414)
 
     assert factoring_1 == factoring_2
 
@@ -16,7 +16,7 @@ def test_reproducibility():
 @pytest.mark.parametrize("y", [2, 2 ** 10 + 561, 2 ** 21 + 141771])
 def test_composite_number(x, y):
     print(bin(x))
-    factor_sat = factoring_to_sat(x * y)
+    factor_sat = factorize_number(x * y)
 
     formula = CNF()
     formula.from_clauses(factor_sat.clauses)
@@ -37,7 +37,7 @@ def test_composite_number(x, y):
                                    # 1099511627791, #~ 2**40
                                    ])
 def test_prime_number(prime):
-    factor_sat = factoring_to_sat(prime)
+    factor_sat = factorize_number(prime)
 
     formula = CNF()
     formula.from_clauses(factor_sat.clauses)

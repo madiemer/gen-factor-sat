@@ -13,8 +13,8 @@ group.add_argument('-n', '--number', nargs='?', type=int)
 args = parser.parse_args()
 
 if args.number is not None:
-    result = factoring_sat.factoring_to_sat(args.number)
+    result = factoring_sat.factorize_number(args.number)
 else:
-    result = factoring_sat.generate_factoring_to_sat(args.seed)
+    result = factoring_sat.factorize_random_number(args.seed)
 
 args.outfile.write(result.to_dimacs())

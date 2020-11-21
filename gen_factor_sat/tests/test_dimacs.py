@@ -14,7 +14,7 @@ class DimacsTest(unittest.TestCase):
 
     @given(integers(2, 2 ** 50))
     def test_duplicate_variables(self, x):
-        factor_sat = factoring_sat.factoring_to_sat(x)
+        factor_sat = factoring_sat.factorize_number(x)
         dimacs = factor_sat.to_dimacs()
 
         clauses = []

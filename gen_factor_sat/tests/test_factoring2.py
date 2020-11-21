@@ -5,21 +5,21 @@ from hypothesis.strategies import integers
 from pysat.formula import CNF
 from pysat.solvers import Cadical
 from random import Random
-from gen_factor_sat.factoring_sat import factoring_to_sat, generate_factoring_to_sat, _generate_number
+from gen_factor_sat.factoring_sat import factorize_number, factorize_random_number, _generate_number
 
 
 class FactoringTest(unittest.TestCase):
 
     def test_reproducibility(self):
-        factoring_1 = generate_factoring_to_sat(213198414)
-        factoring_2 = generate_factoring_to_sat(213198414)
+        factoring_1 = factorize_random_number(213198414)
+        factoring_2 = factorize_random_number(213198414)
 
         self.assertNotEqual(factoring_1, factoring_2)
 
     @given(integers(2, 2 ** 40), integers(2, 2 ** 40))
     @settings(deadline=None, max_examples=10)
     def test_composite_number(self, x, y):
-        factor_sat = factoring_to_sat(x * y)
+        factor_sat = factorize_number(x * y)
 
         formula = CNF()
         formula.from_clauses(factor_sat.clauses)
@@ -37,7 +37,7 @@ class FactoringTest(unittest.TestCase):
     @settings(deadline=None, max_examples=20)
     def test_prime_number(self, n):
         assume(FactoringTest.primt(n))
-        factor_sat = factoring_to_sat(n)
+        factor_sat = factorize_number(n)
 
         formula = CNF()
         formula.from_clauses(factor_sat.clauses)

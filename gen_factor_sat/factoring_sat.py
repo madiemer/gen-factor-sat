@@ -31,18 +31,18 @@ class FactoringSat:
         return '\n'.join([number, factor_1, factor_2]) + '\n' + result_to_dimacs(self.variables, self.clauses)
 
 
-def generate_factoring_to_sat(seed: Optional[int]) -> FactoringSat:
+def factorize_random_number(seed: Optional[int]) -> FactoringSat:
     if not seed:
         seed = random.randrange(sys.maxsize)
 
     number = _generate_number(seed=seed)
-    factor_sat = factoring_to_sat(number)
+    factor_sat = factorize_number(number)
     factor_sat.seed = seed
 
     return factor_sat
 
 
-def factoring_to_sat(number: int) -> FactoringSat:
+def factorize_number(number: int) -> FactoringSat:
     bin_n = bin(number)[2:]
 
     len_x, len_y = _factor_lengths(len(bin_n))
