@@ -9,12 +9,12 @@ from gen_factor_sat import tseitin
 
 class DimacsTest(unittest.TestCase):
     comment_line = re.compile('c .*')
-    problem_line = re.compile('p (?P<variables>\\d*) (?P<clauses>\\d*)')
+    problem_line = re.compile('p cnf (?P<variables>\\d*) (?P<clauses>\\d*)')
     clause_line = re.compile('(-?[1-9][0-9]* )+0')
 
     @given(integers(2, 2 ** 50))
     def test_duplicate_variables(self, x):
-        factor_sat = factoring_sat.factorize_number(x)
+        factor_sat = factoring_sat.factorize_number(2**30)
         dimacs = factor_sat.to_dimacs()
 
         clauses = []

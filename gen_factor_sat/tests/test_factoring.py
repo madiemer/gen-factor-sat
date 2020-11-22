@@ -12,22 +12,22 @@ def test_reproducibility():
     assert factoring_1 == factoring_2
 
 
-@pytest.mark.parametrize("x", [2, 2 ** 10 + 659, 2 ** 21 + 521782])
-@pytest.mark.parametrize("y", [2, 2 ** 10 + 561, 2 ** 21 + 141771])
+@pytest.mark.parametrize("x", [2, 2 ** 10 + 659, 2 ** 15 + 5217])
+@pytest.mark.parametrize("y", [2, 2 ** 10 + 561, 2 ** 15 + 1414])
 def test_composite_number(x, y):
     print(bin(x))
     factor_sat = factorize_number(x * y)
 
     formula = CNF()
     formula.from_clauses(factor_sat.clauses)
-    solver = Cadical(bootstrap_with=formula)
 
-    assert solver.solve(), "The formula generated for a composite number should be in SAT"
+    with Cadical(bootstrap_with=formula) as solver:
+        assert solver.solve(), "The formula generated for a composite number should be in SAT"
 
-    result_a = int(''.join(assignment_to_bin(factor_sat.factor_1, solver.get_model())), 2)
-    result_b = int(''.join(assignment_to_bin(factor_sat.factor_2, solver.get_model())), 2)
+        result_a = int(''.join(assignment_to_bin(factor_sat.factor_1, solver.get_model())), 2)
+        result_b = int(''.join(assignment_to_bin(factor_sat.factor_2, solver.get_model())), 2)
 
-    assert result_a * result_b == x * y, "Result a and b should contain all factors of x and y"
+        assert result_a * result_b == x * y, "Result a and b should contain all factors of x and y"
 
 
 @pytest.mark.parametrize("prime", [2, 3, 5,
@@ -41,9 +41,9 @@ def test_prime_number(prime):
 
     formula = CNF()
     formula.from_clauses(factor_sat.clauses)
-    solver = Cadical(bootstrap_with=formula)
 
-    assert not solver.solve(), "The formula generated for a prime number should be in UNSAT"
+    with Cadical(bootstrap_with=formula) as solver:
+        assert not solver.solve(), "The formula generated for a prime number should be in UNSAT"
 
 
 def assignment_to_bin(sym, assignment):

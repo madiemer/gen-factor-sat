@@ -7,34 +7,35 @@ from gen_factor_sat.strategies import Strategy, T, ZERO
 
 
 def karatsuba(xs: List[T], ys: List[T], strategy: Strategy[T], min_len=20) -> List[T]:
-    if len(xs) < min_len or len(ys) < min_len:
-        return wallace_tree(xs, ys, strategy)
-
     n = max(len(xs), len(ys))
-    half = (n + 1) // 2
 
-    x1 = xs[:-half]
-    x0 = xs[-half:]
+    if n <= min_len:
+        return wallace_tree(xs, ys, strategy)
+    else:
+        half = (n + 1) // 2
 
-    y1 = ys[:-half]
-    y0 = ys[-half:]
+        x1 = xs[:-half]
+        x0 = xs[-half:]
 
-    z0 = karatsuba(x0, y0, strategy)
-    z2 = karatsuba(x1, y1, strategy) if x1 and y1 else [ZERO]
+        y1 = ys[:-half]
+        y0 = ys[-half:]
 
-    # z1 = karatsuba((x1 + x0), (y1 + y0)) - z2 - z0
-    sum_x = circuit.n_bit_adder(x1, x0, ZERO, strategy) if x1 else x0
-    sum_y = circuit.n_bit_adder(y1, y0, ZERO, strategy) if y1 else y0
+        z0 = karatsuba(x0, y0, strategy) if x0 and y0 else []
+        z2 = karatsuba(x1, y1, strategy) if x1 and y1 else []
 
-    z1 = karatsuba(sum_x, sum_y, strategy)
-    z1 = circuit.subtract(z1, z2, strategy)
-    z1 = circuit.subtract(z1, z0, strategy)
+        # z1 = karatsuba((x1 + x0), (y1 + y0)) - z2 - z0
+        sum_x = circuit.n_bit_adder(x1, x0, ZERO, strategy) if x1 else x0
+        sum_y = circuit.n_bit_adder(y1, y0, ZERO, strategy) if y1 else y0
 
-    # x * y = z2 * 2^(2 * half) + z1 * 2^(half) + z0
-    sum = circuit.n_bit_adder(circuit.shift(z2, half), z1, ZERO, strategy)
-    sum = circuit.n_bit_adder(circuit.shift(sum, half), z0, ZERO, strategy)
+        z1 = karatsuba(sum_x, sum_y, strategy)
+        z1 = circuit.subtract(z1, z2, strategy) if z2 else z1
+        z1 = circuit.subtract(z1, z0, strategy) if z0 else z1
 
-    return sum
+        # x * y = z2 * 2^(2 * half) + z1 * 2^(half) + z0
+        sum = circuit.n_bit_adder(circuit.shift(z2, half), z1, ZERO, strategy)
+        sum = circuit.n_bit_adder(circuit.shift(sum, half), z0, ZERO, strategy)
+
+        return sum
 
 
 def wallace_tree(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:

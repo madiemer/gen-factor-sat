@@ -80,7 +80,7 @@ def create_symbolic_input(len_x: int, len_y: int) -> Tuple[List[Variable], List[
 
 
 def result_to_dimacs(variables: Set[Variable], clauses: Set[Clause]) -> str:
-    problem = 'p {0} {1}'.format(len(variables), len(clauses))
+    problem = 'p cnf {0} {1}'.format(len(variables), len(clauses))
     return '\n'.join([problem] + list(map(clause_to_dimacs, clauses)))
 
 
