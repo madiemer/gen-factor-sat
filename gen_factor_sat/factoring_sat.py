@@ -13,8 +13,8 @@ from gen_factor_sat.tseitin import Symbol, Clause, Variable, ONE, is_no_tautolog
 @dataclass
 class FactoringSat:
     number: int
-    factor_1: List[Symbol]
-    factor_2: List[Symbol]
+    factor_1: List[Variable]
+    factor_2: List[Variable]
     num_variables: int
     clauses: Set[Clause]
     seed: Optional[int] = None
