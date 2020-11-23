@@ -34,9 +34,7 @@ class EvalStrategy(Strategy[Constant]):
 class TseitinStrategy(Strategy[Symbol]):
 
     def __init__(self, variables):
-        self.variables = list(map(op.neg, variables))
-        heapq.heapify(self.variables)
-
+        self.num_variables = len(variables)
         self.clauses = set()
 
     def wire_and(self, x: Symbol, y: Symbol) -> Symbol:
@@ -74,14 +72,8 @@ class TseitinStrategy(Strategy[Symbol]):
         return value
 
     def __next_variable(self):
-        # heapq does not support a max heap => Reverse order
-        try:
-            z = -self.variables[0] + 1
-        except IndexError:
-            z = 1
-
-        heapq.heappush(self.variables, -z)
-        return z
+        self.num_variables += 1
+        return self.num_variables
 
 
 def is_constant(x):

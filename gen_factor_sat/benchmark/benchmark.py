@@ -35,7 +35,7 @@ for number, runs in SCENARIOS:
         'Version': VERSION,
         'Number': number,
         'Number length': len(bin(instance.number)[2:]),
-        'Variables': len(instance.variables),
+        'Variables': instance.num_variables,
         'Clauses': len(instance.clauses),
         'Runs': runs,
         'Avg. Time[ms]': '{:.6f}'.format(avg_time)

@@ -15,7 +15,7 @@ class FactoringSat:
     number: int
     factor_1: List[Symbol]
     factor_2: List[Symbol]
-    variables: Set[Symbol]
+    num_variables: int
     clauses: Set[Clause]
     seed: Optional[int] = None
 
@@ -28,7 +28,7 @@ class FactoringSat:
         factor_1 = 'c Factor 1: {0}'.format(self.factor_1)
         factor_2 = 'c Factor 2: {0}'.format(self.factor_2)
 
-        return '\n'.join([number, factor_1, factor_2]) + '\n' + result_to_dimacs(self.variables, self.clauses)
+        return '\n'.join([number, factor_1, factor_2]) + '\n' + result_to_dimacs(self.num_variables, self.clauses)
 
 
 def factorize_random_number(seed: Optional[int]) -> FactoringSat:
@@ -57,7 +57,7 @@ def factorize_number(number: int) -> FactoringSat:
     # once instead of checking the clauses whenever they are added
     clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
 
-    return FactoringSat(number, sym_x, sym_y, tseitin_strategy.variables, clauses)
+    return FactoringSat(number, sym_x, sym_y, tseitin_strategy.num_variables, clauses)
 
 
 def _generate_number(seed: int) -> int:
@@ -79,8 +79,8 @@ def create_symbolic_input(len_x: int, len_y: int) -> Tuple[List[Variable], List[
     return sym_x, sym_y
 
 
-def result_to_dimacs(variables: Set[Variable], clauses: Set[Clause]) -> str:
-    problem = 'p cnf {0} {1}'.format(len(variables), len(clauses))
+def result_to_dimacs(num_variables: int, clauses: Set[Clause]) -> str:
+    problem = 'p cnf {0} {1}'.format(num_variables, len(clauses))
     return '\n'.join([problem] + list(map(clause_to_dimacs, clauses)))
 
 
