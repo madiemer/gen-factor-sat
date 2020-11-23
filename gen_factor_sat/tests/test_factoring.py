@@ -34,7 +34,7 @@ def test_composite_number(x, y):
 
 @pytest.mark.parametrize(
     "prime",
-    [2, 3, 4, 5, 1031,
+    [2, 3, 5, 1031,
      32771,  # < 2**20 => wallace_tree
      1073741827,  # > 2**20 => karatsuba
      # 1099511627791, #~ 2**40
