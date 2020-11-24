@@ -8,7 +8,8 @@ from typing import List, Set, Optional, Tuple
 from gen_factor_sat import strategies
 from gen_factor_sat.circuit import n_bit_equality
 from gen_factor_sat.multiplication import karatsuba
-from gen_factor_sat.tseitin import Symbol, Clause, Variable, ONE, is_no_tautology
+from gen_factor_sat.tseitin import Clause, Variable, is_no_tautology
+
 
 @dataclass
 class FactoringSat:
@@ -51,7 +52,7 @@ def factorize_number(number: int) -> FactoringSat:
     tseitin_strategy = strategies.TseitinStrategy(sym_x + sym_y)
     mult_result = karatsuba(sym_x, sym_y, tseitin_strategy)
     fact_result = n_bit_equality(list(bin_n), mult_result, tseitin_strategy)
-    tseitin_strategy.assume(fact_result, ONE)
+    tseitin_strategy.assume(fact_result, tseitin_strategy.one())
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added

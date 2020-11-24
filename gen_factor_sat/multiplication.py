@@ -3,7 +3,7 @@ import itertools
 from typing import List, Tuple, DefaultDict, Iterable
 
 from gen_factor_sat import circuit
-from gen_factor_sat.strategies import Strategy, T, ZERO
+from gen_factor_sat.strategies import Strategy, T
 
 
 def karatsuba(xs: List[T], ys: List[T], strategy: Strategy[T], min_len=20) -> List[T]:
@@ -24,16 +24,16 @@ def karatsuba(xs: List[T], ys: List[T], strategy: Strategy[T], min_len=20) -> Li
         z2 = karatsuba(x1, y1, strategy) if x1 and y1 else []
 
         # z1 = karatsuba((x1 + x0), (y1 + y0)) - z2 - z0
-        sum_x = circuit.n_bit_adder(x1, x0, ZERO, strategy) if x1 else x0
-        sum_y = circuit.n_bit_adder(y1, y0, ZERO, strategy) if y1 else y0
+        sum_x = circuit.n_bit_adder(x1, x0, strategy.zero(), strategy) if x1 else x0
+        sum_y = circuit.n_bit_adder(y1, y0, strategy.zero(), strategy) if y1 else y0
 
         z1 = karatsuba(sum_x, sum_y, strategy)
         z1 = circuit.subtract(z1, z2, strategy) if z2 else z1
         z1 = circuit.subtract(z1, z0, strategy) if z0 else z1
 
         # x * y = z2 * 2^(2 * half) + z1 * 2^(half) + z0
-        sum = circuit.n_bit_adder(circuit.shift(z2, half), z1, ZERO, strategy)
-        sum = circuit.n_bit_adder(circuit.shift(sum, half), z0, ZERO, strategy)
+        sum = circuit.n_bit_adder(circuit.shift(z2, half, strategy), z1, strategy.zero(), strategy)
+        sum = circuit.n_bit_adder(circuit.shift(sum, half, strategy), z0, strategy.zero(), strategy)
 
         return sum
 
@@ -50,7 +50,7 @@ def wallace_tree(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
         grouped_products = _group(products)
 
     result = []
-    last_carry = ZERO
+    last_carry = strategy.zero()
     for key in sorted(grouped_products):
         xs = grouped_products[key]
 

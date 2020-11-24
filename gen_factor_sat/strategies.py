@@ -1,5 +1,3 @@
-import heapq
-import operator as op
 from typing import Generic, TypeVar
 
 from gen_factor_sat import tseitin
@@ -9,6 +7,12 @@ T = TypeVar('T')
 
 
 class Strategy(Generic[T]):
+    def zero(self) -> T:
+        pass
+
+    def one(self) -> T:
+        pass
+
     def wire_and(self, x: T, y: T) -> T:
         pass
 
@@ -20,6 +24,12 @@ class Strategy(Generic[T]):
 
 
 class EvalStrategy(Strategy[Constant]):
+
+    def zero(self) -> Constant:
+        return '0'
+
+    def one(self) -> Constant:
+        return '1'
 
     def wire_and(self, x: Constant, y: Constant) -> Constant:
         return bin((x == '1') and (y == '1'))[2:]
@@ -36,6 +46,12 @@ class TseitinStrategy(Strategy[Symbol]):
     def __init__(self, variables):
         self.num_variables = len(variables)
         self.clauses = set()
+
+    def zero(self) -> T:
+        return '0'
+
+    def one(self) -> T:
+        return '1'
 
     def wire_and(self, x: Symbol, y: Symbol) -> Symbol:
         if is_constant(x) or is_constant(y):

@@ -1,7 +1,7 @@
 import functools
 from typing import List, Tuple
 
-from gen_factor_sat.strategies import T, Strategy, ZERO, ONE
+from gen_factor_sat.strategies import T, Strategy
 
 
 def half_adder(x: T, y: T, strategy: Strategy[T]) -> Tuple[T, T]:
@@ -69,9 +69,9 @@ def propagate(xs: List[T], c: T, strategy: Strategy[T]) -> List[T]:
 
 
 def subtract(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
-    aligned_xs, aligned_ys = align(xs, ys)
+    aligned_xs, aligned_ys = align(xs, ys, strategy)
     complement = list(map(strategy.wire_not, aligned_ys))
-    sum = n_bit_adder(aligned_xs, complement, ONE, strategy)
+    sum = n_bit_adder(aligned_xs, complement, strategy.one(), strategy)
 
     return sum[1:]  # Carry is not needed
 
@@ -87,7 +87,7 @@ def equality(x: T, y: T, strategy: Strategy[T]) -> T:
 
 
 def n_bit_equality(xs: List[T], ys: List[T], strategy: Strategy[T]) -> T:
-    aligned_xs, aligned_ys = align(xs, ys)
+    aligned_xs, aligned_ys = align(xs, ys, strategy)
 
     pairwise_equal = [equality(x, y, strategy) for x, y in zip(aligned_xs, aligned_ys)]
     all_equal = functools.reduce(strategy.wire_and, pairwise_equal)
@@ -95,12 +95,12 @@ def n_bit_equality(xs: List[T], ys: List[T], strategy: Strategy[T]) -> T:
     return all_equal
 
 
-def shift(xs: List[T], n: int) -> List[T]:
-    return xs + [ZERO] * n
+def shift(xs: List[T], n: int, strategy: Strategy[T]) -> List[T]:
+    return xs + [strategy.zero()] * n
 
 
-def align(xs: List[T], ys: List[T]) -> Tuple[List[T], List[T]]:
-    aligned_xs = ([ZERO] * (len(ys) - len(xs))) + xs
-    aligned_ys = ([ZERO] * (len(xs) - len(ys))) + ys
+def align(xs: List[T], ys: List[T], strategy: Strategy[T]) -> Tuple[List[T], List[T]]:
+    aligned_xs = ([strategy.zero()] * (len(ys) - len(xs))) + xs
+    aligned_ys = ([strategy.zero()] * (len(xs) - len(ys))) + ys
 
     return aligned_xs, aligned_ys

@@ -10,40 +10,40 @@ ZERO: Constant = '0'
 ONE: Constant = '1'
 
 
-def and_equality(x: Variable, y: Variable, z: Variable) -> Set[Clause]:
+def and_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[Clause]:
     """
     Encode an AND-Gate into a CNF.
 
-    :param x: variable representing the first input of the AND-Gate
-    :param y: variable representing the second input of the AND-Gate
-    :param z: variable representing the output of the AND-Gate
+    :param input_1: variable representing the first input of the AND-Gate
+    :param input_2: variable representing the second input of the AND-Gate
+    :param output: variable representing the output of the AND-Gate
     :return: A set of clauses encoding the AND-Gate
     """
     return {
-        frozenset([x, -z]),
-        frozenset([y, -z]),
-        frozenset([-x, -y, z])
+        frozenset([input_1, -output]),
+        frozenset([input_2, -output]),
+        frozenset([-input_1, -input_2, output])
     }
 
 
-def or_equality(x: Variable, y: Variable, z: Variable) -> Set[Clause]:
+def or_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[Clause]:
     """
     Encode an OR-Gate into a CNF.
 
-    :param x: variable representing the first input of the OR-Gate
-    :param y: variable representing the second input of the OR-Gate
-    :param z: variable representing the output of the AND-Gate
+    :param input_1: variable representing the first input of the OR-Gate
+    :param input_2: variable representing the second input of the OR-Gate
+    :param output: variable representing the output of the AND-Gate
     :return: A set of clauses encoding the OR-Gate
     """
     return {
-        frozenset([-x, y, z]),
-        frozenset([x, -y, z]),
-        frozenset([x, y, -z])
+        frozenset([-input_1, input_2, output]),
+        frozenset([input_1, -input_2, output]),
+        frozenset([input_1, input_2, -output])
     }
 
 
-def empty_clause(x: Variable) -> Set[Clause]:
-    return {frozenset([x]), frozenset([-x])}
+def empty_clause(variable: Variable) -> Set[Clause]:
+    return {frozenset([variable]), frozenset([-variable])}
 
 
 def is_no_tautology(clause: Clause) -> bool:
