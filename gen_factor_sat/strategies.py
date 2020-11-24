@@ -77,8 +77,7 @@ class TseitinStrategy(Strategy[Symbol]):
 
     def assume(self, x: Symbol, value: Constant) -> Constant:
         if is_constant(x) and x != value:
-            z = self.__next_variable()
-            self.clauses.update(tseitin.empty_clause(z))
+            self.clauses.add(frozenset([]))
         elif not is_constant(x):
             if value == ONE:
                 self.clauses.add(frozenset([x]))

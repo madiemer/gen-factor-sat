@@ -56,9 +56,9 @@ def factorize_number(number: int) -> FactoringSat:
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added
-    clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
+    #clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
 
-    return FactoringSat(number, sym_x, sym_y, tseitin_strategy.num_variables, clauses)
+    return FactoringSat(number, sym_x, sym_y, tseitin_strategy.num_variables, tseitin_strategy.clauses)
 
 
 def _generate_number(seed: int) -> int:

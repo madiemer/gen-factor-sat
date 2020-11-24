@@ -42,8 +42,8 @@ def or_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[C
     }
 
 
-def empty_clause(variable: Variable) -> Set[Clause]:
-    return {frozenset([variable]), frozenset([-variable])}
+def empty_clause() -> Clause:
+    return frozenset([])
 
 
 def is_no_tautology(clause: Clause) -> bool:

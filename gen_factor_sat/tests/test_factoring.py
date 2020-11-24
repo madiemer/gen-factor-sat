@@ -16,11 +16,8 @@ def test_reproducibility():
 @pytest.mark.parametrize("x", [2, 2 ** 10 + 659, 2 ** 15 + 5217])
 @pytest.mark.parametrize("y", [2, 2 ** 10 + 561, 2 ** 15 + 1414])
 def test_composite_number(x, y):
-    print(bin(x))
     factor_sat = factorize_number(x * y)
-
-    formula = CNF()
-    formula.from_clauses(factor_sat.clauses)
+    formula = CNF(from_clauses=factor_sat.clauses)
 
     with Cadical(bootstrap_with=formula) as solver:
         assert solver.solve(), "The formula generated for a composite number should be in SAT"
@@ -41,9 +38,7 @@ def test_composite_number(x, y):
      ])
 def test_prime_number(prime):
     factor_sat = factorize_number(prime)
-
-    formula = CNF()
-    formula.from_clauses(factor_sat.clauses)
+    formula = CNF(from_clauses=factor_sat.clauses)
 
     with Cadical(bootstrap_with=formula) as solver:
         assert not solver.solve(), "The formula generated for a prime number should be in UNSAT"
