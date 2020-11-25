@@ -1,7 +1,7 @@
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, List
 
 from gen_factor_sat import tseitin
-from gen_factor_sat.tseitin import Symbol, Constant, ZERO, ONE
+from gen_factor_sat.tseitin import Symbol, Constant, Variable, ZERO, ONE
 
 T = TypeVar('T')
 
@@ -43,21 +43,21 @@ class EvalStrategy(Strategy[Constant]):
 
 class TseitinStrategy(Strategy[Symbol]):
 
-    def __init__(self, variables):
-        self.num_variables = len(variables)
+    def __init__(self, number_of_variables=0):
+        self.number_of_variables = number_of_variables
         self.clauses = set()
 
-    def zero(self) -> T:
+    def zero(self) -> Constant:
         return '0'
 
-    def one(self) -> T:
+    def one(self) -> Constant:
         return '1'
 
     def wire_and(self, x: Symbol, y: Symbol) -> Symbol:
         if is_constant(x) or is_constant(y):
             return constant_and(x, y)
         else:
-            z = self.__next_variable()
+            z = self.next_variable()
             self.clauses.update(tseitin.and_equality(x, y, z))
             return z
 
@@ -65,7 +65,7 @@ class TseitinStrategy(Strategy[Symbol]):
         if is_constant(x) or is_constant(y):
             return constant_or(x, y)
         else:
-            z = self.__next_variable()
+            z = self.next_variable()
             self.clauses.update(tseitin.or_equality(x, y, z))
             return z
 
@@ -77,18 +77,21 @@ class TseitinStrategy(Strategy[Symbol]):
 
     def assume(self, x: Symbol, value: Constant) -> Constant:
         if is_constant(x) and x != value:
-            self.clauses.add(frozenset([]))
+            self.clauses.add(tseitin.empty_clause())
         elif not is_constant(x):
             if value == ONE:
-                self.clauses.add(frozenset([x]))
+                self.clauses.add(tseitin.unit_clause(x))
             else:
-                self.clauses.add(frozenset([-x]))
+                self.clauses.add(tseitin.unit_clause(-x))
 
         return value
 
-    def __next_variable(self):
-        self.num_variables += 1
-        return self.num_variables
+    def next_variables(self, amount) -> List[Variable]:
+        return [self.next_variable() for _ in range(amount)]
+
+    def next_variable(self) -> Variable:
+        self.number_of_variables += 1
+        return self.number_of_variables
 
 
 def is_constant(x):

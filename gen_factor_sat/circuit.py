@@ -1,27 +1,28 @@
 import functools
+import itertools
 from typing import List, Tuple
 
 from gen_factor_sat.strategies import T, Strategy
 
 
-def half_adder(x: T, y: T, strategy: Strategy[T]) -> Tuple[T, T]:
-    sum = strategy.wire_or(
-        strategy.wire_and(x, strategy.wire_not(y)),
-        strategy.wire_and(strategy.wire_not(x), y)
+def half_adder(input_1: T, input_2: T, strategy: Strategy[T]) -> Tuple[T, T]:
+    output_sum = strategy.wire_or(
+        strategy.wire_and(input_1, strategy.wire_not(input_2)),
+        strategy.wire_and(strategy.wire_not(input_1), input_2)
     )
 
-    carry = strategy.wire_and(x, y)
+    output_carry = strategy.wire_and(input_1, input_2)
 
-    return sum, carry
+    return output_sum, output_carry
 
 
-def full_adder(x: T, y: T, c: T, strategy: Strategy[T]) -> Tuple[T, T]:
-    partial_sum, carry_1 = half_adder(x, y, strategy)
-    total_sum, carry_2 = half_adder(partial_sum, c, strategy)
+def full_adder(input_1: T, input_2: T, carry: T, strategy: Strategy[T]) -> Tuple[T, T]:
+    partial_sum, carry_1 = half_adder(input_1, input_2, strategy)
+    output_sum, carry_2 = half_adder(partial_sum, carry, strategy)
 
-    carry = strategy.wire_or(carry_1, carry_2)
+    output_carry = strategy.wire_or(carry_1, carry_2)
 
-    return total_sum, carry
+    return output_sum, output_carry
 
 
 # def n_bit_adder(xs: List[T], ys: List[T], c: T, strategy: Strategy[T]) -> List[T]:
@@ -43,64 +44,68 @@ def full_adder(x: T, y: T, c: T, strategy: Strategy[T]) -> Tuple[T, T]:
 #     return result
 
 
-def n_bit_adder(xs: List[T], ys: List[T], c: T, strategy: Strategy[T]) -> List[T]:
-    if not xs:
-        return propagate(ys, c, strategy)
-    elif not ys:
-        return propagate(xs, c, strategy)
+def n_bit_adder(inputs_1: List[T], inputs_2: List[T], carry: T, strategy: Strategy[T]) -> List[T]:
+    if not inputs_1:
+        return propagate(inputs_2, carry, strategy)
+    elif not inputs_2:
+        return propagate(inputs_1, carry, strategy)
     else:
-        x = xs[-1]
-        y = ys[-1]
-        sum_xy, carry_xy = full_adder(x, y, c, strategy)
+        *init_1, lsb_1 = inputs_1
+        *init_2, lsb_2 = inputs_2
 
-        sum = n_bit_adder(xs[:-1], ys[:-1], carry_xy, strategy)
-        return sum + [sum_xy]
+        lsb_sum, lsb_carry = full_adder(lsb_1, lsb_2, carry, strategy)
+        init_sum = n_bit_adder(init_1, init_2, lsb_carry, strategy)
+
+        return init_sum + [lsb_sum]
 
 
-def propagate(xs: List[T], c: T, strategy: Strategy[T]) -> List[T]:
-    if not xs:
-        return [c]
+def propagate(inputs: List[T], carry: T, strategy: Strategy[T]) -> List[T]:
+    if not inputs:
+        return [carry]
     else:
-        x = xs[-1]
-        partial_sum, carry = half_adder(x, c, strategy)
-        total_sum = propagate(xs[:-1], carry, strategy)
+        *init, lsb = inputs
 
-        return total_sum + [partial_sum]
+        lsb_sum, lsb_carry = half_adder(lsb, carry, strategy)
+        init_sum = propagate(init, lsb_carry, strategy)
 
-
-def subtract(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
-    aligned_xs, aligned_ys = align(xs, ys, strategy)
-    complement = list(map(strategy.wire_not, aligned_ys))
-    sum = n_bit_adder(aligned_xs, complement, strategy.one(), strategy)
-
-    return sum[1:]  # Carry is not needed
+        return init_sum + [lsb_sum]
 
 
-def equality(x: T, y: T, strategy: Strategy[T]) -> T:
+def subtract(inputs_1: List[T], inputs_2: List[T], strategy: Strategy[T]) -> List[T]:
+    aligned_inputs_1, aligned_inputs_2 = align(inputs_1, inputs_2, strategy)
+
+    complement = list(map(strategy.wire_not, aligned_inputs_2))
+    output_sum = n_bit_adder(aligned_inputs_1, complement, strategy.one(), strategy)
+
+    return output_sum[1:]  # Carry is not needed
+
+
+def equality(input_1: T, input_2: T, strategy: Strategy[T]) -> T:
     return strategy.wire_or(
-        strategy.wire_and(x, y),
+        strategy.wire_and(input_1, input_2),
         strategy.wire_and(
-            strategy.wire_not(x),
-            strategy.wire_not(y)
+            strategy.wire_not(input_1),
+            strategy.wire_not(input_2)
         )
     )
 
 
-def n_bit_equality(xs: List[T], ys: List[T], strategy: Strategy[T]) -> T:
-    aligned_xs, aligned_ys = align(xs, ys, strategy)
+def n_bit_equality(inputs_1: List[T], inputs_2: List[T], strategy: Strategy[T]) -> T:
+    aligned_inputs_1, aligned_inputs_2 = align(inputs_1, inputs_2, strategy)
 
-    pairwise_equal = [equality(x, y, strategy) for x, y in zip(aligned_xs, aligned_ys)]
+    equality_circuit = functools.partial(equality, strategy=strategy)
+    pairwise_equal = itertools.starmap(equality_circuit, zip(aligned_inputs_1, aligned_inputs_2))
     all_equal = functools.reduce(strategy.wire_and, pairwise_equal)
 
     return all_equal
 
 
-def shift(xs: List[T], n: int, strategy: Strategy[T]) -> List[T]:
-    return xs + [strategy.zero()] * n
+def shift(inputs_1: List[T], shifts: int, strategy: Strategy[T]) -> List[T]:
+    return inputs_1 + [strategy.zero()] * shifts
 
 
-def align(xs: List[T], ys: List[T], strategy: Strategy[T]) -> Tuple[List[T], List[T]]:
-    aligned_xs = ([strategy.zero()] * (len(ys) - len(xs))) + xs
-    aligned_ys = ([strategy.zero()] * (len(xs) - len(ys))) + ys
+def align(inputs_1: List[T], inputs_2: List[T], strategy: Strategy[T]) -> Tuple[List[T], List[T]]:
+    aligned_inputs_1 = ([strategy.zero()] * (len(inputs_2) - len(inputs_1))) + inputs_1
+    aligned_inputs_2 = ([strategy.zero()] * (len(inputs_1) - len(inputs_2))) + inputs_2
 
-    return aligned_xs, aligned_ys
+    return aligned_inputs_1, aligned_inputs_2

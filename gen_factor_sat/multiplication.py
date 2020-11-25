@@ -1,4 +1,5 @@
 import collections
+import functools
 import itertools
 from typing import List, Tuple, DefaultDict, Iterable
 
@@ -6,45 +7,47 @@ from gen_factor_sat import circuit
 from gen_factor_sat.strategies import Strategy, T
 
 
-def karatsuba(xs: List[T], ys: List[T], strategy: Strategy[T], min_len=20) -> List[T]:
-    n = max(len(xs), len(ys))
+def karatsuba(factor_1: List[T], factor_2: List[T], strategy: Strategy[T], min_len=20) -> List[T]:
+    max_factor_length = max(len(factor_1), len(factor_2))
 
-    if n <= min_len:
-        return wallace_tree(xs, ys, strategy)
+    if max_factor_length <= min_len:
+        return wallace_tree(factor_1, factor_2, strategy)
     else:
-        half = (n + 1) // 2
+        half_factor_length = (max_factor_length + 1) // 2
 
-        x1 = xs[:-half]
-        x0 = xs[-half:]
+        f1_high, f1_low = split_at(factor_1, -half_factor_length)
+        f2_high, f2_low = split_at(factor_2, -half_factor_length)
 
-        y1 = ys[:-half]
-        y0 = ys[-half:]
+        result_low = karatsuba(f1_low, f2_low, strategy) if f1_low and f2_low else []
+        result_high = karatsuba(f1_high, f2_high, strategy) if f1_high and f2_high else []
 
-        z0 = karatsuba(x0, y0, strategy) if x0 and y0 else []
-        z2 = karatsuba(x1, y1, strategy) if x1 and y1 else []
+        # result_mid = karatsuba((f1_high + f1_low), (f2_high + f2_low)) - result_high - result_low
+        factor_1_sum = circuit.n_bit_adder(f1_high, f1_low, strategy.zero(), strategy) if f1_high else f1_low
+        factor_2_sum = circuit.n_bit_adder(f2_high, f2_low, strategy.zero(), strategy) if f2_high else f2_low
 
-        # z1 = karatsuba((x1 + x0), (y1 + y0)) - z2 - z0
-        sum_x = circuit.n_bit_adder(x1, x0, strategy.zero(), strategy) if x1 else x0
-        sum_y = circuit.n_bit_adder(y1, y0, strategy.zero(), strategy) if y1 else y0
+        result_mid = karatsuba(factor_1_sum, factor_2_sum, strategy)
+        result_mid = circuit.subtract(result_mid, result_high, strategy) if result_high else result_mid
+        result_mid = circuit.subtract(result_mid, result_low, strategy) if result_low else result_mid
 
-        z1 = karatsuba(sum_x, sum_y, strategy)
-        z1 = circuit.subtract(z1, z2, strategy) if z2 else z1
-        z1 = circuit.subtract(z1, z0, strategy) if z0 else z1
+        # result = result_high * 2^(2 * half_factor_length) + result_mid * 2^(half_factor_length) + result_low
+        shifted_high = circuit.shift(result_high, half_factor_length, strategy)
+        result = circuit.n_bit_adder(shifted_high, result_mid, strategy.zero(), strategy)
 
-        # x * y = z2 * 2^(2 * half) + z1 * 2^(half) + z0
-        sum = circuit.n_bit_adder(circuit.shift(z2, half, strategy), z1, strategy.zero(), strategy)
-        sum = circuit.n_bit_adder(circuit.shift(sum, half, strategy), z0, strategy.zero(), strategy)
+        shifted_high = circuit.shift(result, half_factor_length, strategy)
+        result = circuit.n_bit_adder(shifted_high, result_low, strategy.zero(), strategy)
 
-        return sum
+        return result
 
 
-def wallace_tree(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
-    products = _weighted_product(xs, ys, strategy)
+def wallace_tree(factor_1: List[T], factor_2: List[T], strategy: Strategy[T]) -> List[T]:
+    add_layer_circuit = functools.partial(_add_layer, strategy=strategy)
+
+    products = _weighted_product(factor_1, factor_2, strategy)
     grouped_products = _group(products)
 
     while any(len(xs) > 2 for _, xs in grouped_products.items()):
         products = itertools.chain.from_iterable(
-            [_add_layer(w, xs, strategy) for w, xs in grouped_products.items()]
+            itertools.starmap(add_layer_circuit, grouped_products.items())
         )
 
         grouped_products = _group(products)
@@ -52,15 +55,15 @@ def wallace_tree(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
     result = []
     last_carry = strategy.zero()
     for key in sorted(grouped_products):
-        xs = grouped_products[key]
+        products = grouped_products[key]
 
-        if len(xs) == 1:
-            x, = xs
+        if len(products) == 1:
+            x, = products
             sum, carry = circuit.half_adder(x, last_carry, strategy)
             last_carry = carry
             result.append(sum)
         else:
-            x, y = xs
+            x, y = products
             sum, carry = circuit.full_adder(x, y, last_carry, strategy)
             last_carry = carry
             result.append(sum)
@@ -69,15 +72,12 @@ def wallace_tree(xs: List[T], ys: List[T], strategy: Strategy[T]) -> List[T]:
     return result[::-1]
 
 
-def _weighted_product(xs: List[T], ys: List[T], strategy: Strategy[T]):
-    len_xs = len(xs)
-    len_ys = len(ys)
+def _weighted_product(factor_1: List[T], factor_2: List[T], strategy: Strategy[T]):
+    for i, x in enumerate(factor_1):
+        w_x = len(factor_1) - i
 
-    for i, x in enumerate(xs):
-        w_x = len_xs - i
-
-        for j, y in enumerate(ys):
-            w_y = len_ys - j
+        for j, y in enumerate(factor_2):
+            w_y = len(factor_2) - j
 
             weight_sum = w_x + w_y
             product = strategy.wire_and(x, y)
@@ -85,26 +85,33 @@ def _weighted_product(xs: List[T], ys: List[T], strategy: Strategy[T]):
             yield weight_sum, product
 
 
-def _add_layer(w: int, xs: List[T], strategy: Strategy[T]) -> List[Tuple[int, T]]:
-    if len(xs) == 1:
-        return [(w, xs[0])]
+def _add_layer(weight: int, products: List[T], strategy: Strategy[T]) -> List[Tuple[int, T]]:
+    if len(products) == 1:
+        return [(weight, products[0])]
 
-    elif len(xs) == 2:
-        x, y = xs
+    elif len(products) == 2:
+        x, y = products
         sum, carry = circuit.half_adder(x, y, strategy)
 
-        return [(w, sum), (w + 1, carry)]
+        return [(weight, sum), (weight + 1, carry)]
 
-    elif len(xs) > 2:
-        x, y, z = xs[:3]
+    elif len(products) > 2:
+        x, y, z = products[:3]
         sum, carry = circuit.full_adder(x, y, z, strategy)
 
-        return [(w, sum), (w + 1, carry)] + [(w, x) for x in xs[3:]]
+        return [(weight, sum), (weight + 1, carry)] + [(weight, x) for x in products[3:]]
+
+    else:
+        raise ValueError('Cannot add a layer for an empty product')
 
 
-def _group(xs: Iterable[Tuple[int, T]]) -> DefaultDict[int, List[T]]:
+def _group(iterable: Iterable[Tuple[int, T]]) -> DefaultDict[int, List[T]]:
     result = collections.defaultdict(list)
-    for k, v in xs:
-        result[k].append(v)
+    for key, value in iterable:
+        result[key].append(value)
 
     return result
+
+
+def split_at(list, index):
+    return list[:index], list[index:]

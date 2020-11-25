@@ -8,7 +8,7 @@ from gen_factor_sat import tseitin
 
 comment_line = re.compile('c .*')
 problem_line = re.compile('p cnf (?P<variables>\\d*) (?P<clauses>\\d*)')
-clause_line = re.compile('(-?[1-9][0-9]* )+0')
+clause_line = re.compile('(-?[1-9][0-9]* )*0')
 
 
 @given(integers(2, 2 ** 10))

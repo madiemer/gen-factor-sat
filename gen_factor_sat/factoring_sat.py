@@ -8,7 +8,7 @@ from typing import List, Set, Optional, Tuple
 from gen_factor_sat import strategies
 from gen_factor_sat.circuit import n_bit_equality
 from gen_factor_sat.multiplication import karatsuba
-from gen_factor_sat.tseitin import Clause, Variable, is_no_tautology
+from gen_factor_sat.tseitin import Clause, Variable
 
 
 @dataclass
@@ -16,7 +16,7 @@ class FactoringSat:
     number: int
     factor_1: List[Variable]
     factor_2: List[Variable]
-    num_variables: int
+    number_of_variables: int
     clauses: Set[Clause]
     seed: Optional[int] = None
 
@@ -29,7 +29,10 @@ class FactoringSat:
         factor_1 = 'c Factor 1: {0}'.format(self.factor_1)
         factor_2 = 'c Factor 2: {0}'.format(self.factor_2)
 
-        return '\n'.join([number, factor_1, factor_2]) + '\n' + result_to_dimacs(self.num_variables, self.clauses)
+        comments = '\n'.join([number, factor_1, factor_2])
+        cnf = result_to_dimacs(self.number_of_variables, self.clauses)
+
+        return comments + '\n' + cnf
 
 
 def factorize_random_number(seed: Optional[int]) -> FactoringSat:
@@ -44,21 +47,26 @@ def factorize_random_number(seed: Optional[int]) -> FactoringSat:
 
 
 def factorize_number(number: int) -> FactoringSat:
-    bin_n = bin(number)[2:]
+    bin_number = bin(number)[2:]
 
-    len_x, len_y = _factor_lengths(len(bin_n))
-    sym_x, sym_y = create_symbolic_input(len_x, len_y)
+    tseitin_strategy = strategies.TseitinStrategy()
 
-    tseitin_strategy = strategies.TseitinStrategy(sym_x + sym_y)
-    mult_result = karatsuba(sym_x, sym_y, tseitin_strategy)
-    fact_result = n_bit_equality(list(bin_n), mult_result, tseitin_strategy)
+    factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
+    sym_factor_1, sym_factor_2, mult_result = multiply_to_cnf(karatsuba, factor_length_1, factor_length_2, tseitin_strategy)
+    fact_result = n_bit_equality(list(bin_number), mult_result, tseitin_strategy)
     tseitin_strategy.assume(fact_result, tseitin_strategy.one())
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added
-    #clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
+    # clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
 
-    return FactoringSat(number, sym_x, sym_y, tseitin_strategy.num_variables, tseitin_strategy.clauses)
+    return FactoringSat(
+        number=number,
+        factor_1=sym_factor_1,
+        factor_2=sym_factor_2,
+        number_of_variables=tseitin_strategy.number_of_variables,
+        clauses=tseitin_strategy.clauses
+    )
 
 
 def _generate_number(seed: int) -> int:
@@ -66,18 +74,19 @@ def _generate_number(seed: int) -> int:
     return rand.randint(2, sys.maxsize)
 
 
-def _factor_lengths(len_n: int) -> Tuple[int, int]:
-    len_x = ceil(len_n / 2)
-    len_y = len_n - 1
+def _factor_lengths(number_length: int) -> Tuple[int, int]:
+    factor_length_1 = ceil(number_length / 2)
+    factor_length_2 = number_length - 1
 
-    return len_x, len_y
+    return factor_length_1, factor_length_2
 
 
-def create_symbolic_input(len_x: int, len_y: int) -> Tuple[List[Variable], List[Variable]]:
-    sym_x = list(range(1, len_x + 1))
-    sym_y = list(range(len_x + 1, len_x + len_y + 1))
+def multiply_to_cnf(multiply, factor_length_1, factor_length_2, tseitin_strategy):
+    factor_1 = tseitin_strategy.next_variables(factor_length_1)
+    factor_2 = tseitin_strategy.next_variables(factor_length_2)
 
-    return sym_x, sym_y
+    mult_result = multiply(factor_1, factor_2, tseitin_strategy)
+    return factor_1, factor_2, mult_result
 
 
 def result_to_dimacs(num_variables: int, clauses: Set[Clause]) -> str:

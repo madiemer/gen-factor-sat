@@ -1,4 +1,4 @@
-from typing import Union, Set, FrozenSet
+from typing import Union, Set, FrozenSet, List
 
 Constant = str
 Variable = int
@@ -42,9 +42,17 @@ def or_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[C
     }
 
 
+def clause(literals: List[Variable]) -> Clause:
+    return frozenset(literals)
+
+
+def unit_clause(literal: Variable) -> Clause:
+    return frozenset([literal])
+
+
 def empty_clause() -> Clause:
     return frozenset([])
 
 
 def is_no_tautology(clause: Clause) -> bool:
-    return clause and all(-x not in clause for x in clause)
+    return bool(clause) and all(-x not in clause for x in clause)

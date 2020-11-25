@@ -1,16 +1,29 @@
 import pytest
+from hypothesis import given, example
+from hypothesis.strategies import integers
 from pysat.formula import CNF
 from pysat.solvers import Cadical
 
-from gen_factor_sat.factoring_sat import factorize_number, factorize_random_number
+from gen_factor_sat.factoring_sat import factorize_number, _generate_number
 
 
-def test_reproducibility():
-    seed = 213198414
-    factoring_1 = factorize_random_number(seed)
-    factoring_2 = factorize_random_number(seed)
+@given(integers(1, 2 ** 40))
+def test_reproducibility(number):
+    factoring_1 = factorize_number(number)
+    factoring_2 = factorize_number(number)
 
     assert factoring_1 == factoring_2
+
+
+@given(integers())
+@example(0)
+@example(1)
+@example(-1)
+def test_seeded_reproducibility(seed):
+    number_1 = _generate_number(seed)
+    number_2 = _generate_number(seed)
+
+    assert number_1 == number_2
 
 
 @pytest.mark.parametrize("x", [2, 2 ** 10 + 659, 2 ** 15 + 5217])
