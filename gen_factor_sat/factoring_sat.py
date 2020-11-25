@@ -95,4 +95,7 @@ def result_to_dimacs(num_variables: int, clauses: Set[Clause]) -> str:
 
 
 def clause_to_dimacs(clause: Clause) -> str:
-    return ' '.join(map(str, clause)) + ' 0'
+    if not clause:
+        return '0'
+    else:
+        return ' '.join(map(str, clause)) + ' 0'

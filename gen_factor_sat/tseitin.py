@@ -55,4 +55,4 @@ def empty_clause() -> Clause:
 
 
 def is_no_tautology(clause: Clause) -> bool:
-    return bool(clause) and all(-x not in clause for x in clause)
+    return all(-x not in clause for x in clause)
