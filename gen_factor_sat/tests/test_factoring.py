@@ -4,6 +4,7 @@ from hypothesis.strategies import integers
 from pysat.formula import CNF
 from pysat.solvers import Cadical
 
+from gen_factor_sat import utils
 from gen_factor_sat.factoring_sat import factorize_number, _generate_number
 
 
@@ -58,9 +59,9 @@ def test_prime_number(prime):
 
 
 def assignment_to_int(sym, assignment):
-    return int(''.join(assignment_to_bin(sym, assignment)), 2)
+    return utils.to_int(list(assignment_to_bin(sym, assignment)))
 
 
 def assignment_to_bin(sym, assignment):
     for s in sym:
-        yield bin(assignment[s - 1] > 0)[2:]
+        yield utils.to_bin_string(assignment[s - 1] > 0)

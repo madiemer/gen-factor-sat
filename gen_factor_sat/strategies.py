@@ -1,6 +1,6 @@
 from typing import Generic, TypeVar, List
-
-from gen_factor_sat import tseitin
+import operator as op
+from gen_factor_sat import tseitin, utils
 from gen_factor_sat.tseitin import Symbol, Constant, Variable, ZERO, ONE
 
 T = TypeVar('T')
@@ -32,13 +32,25 @@ class EvalStrategy(Strategy[Constant]):
         return '1'
 
     def wire_and(self, x: Constant, y: Constant) -> Constant:
-        return bin((x == '1') and (y == '1'))[2:]
+        return EvalStrategy.__with_bool(op.and_, x, y)
 
     def wire_or(self, x: Constant, y: Constant) -> Constant:
-        return bin((x == '1') or (y == '1'))[2:]
+        return EvalStrategy.__with_bool(op.or_, x, y)
 
     def wire_not(self, x: Constant) -> Constant:
-        return bin(not (x == '1'))[2:]
+        return EvalStrategy.__with_bool(op.not_, x)
+
+    @staticmethod
+    def __with_bool(func, *args):
+        return EvalStrategy.__to_bin(func(*iter(map(EvalStrategy.__to_bool, args))))
+
+    @staticmethod
+    def __to_bool(value: str) -> bool:
+        return value == '1'
+
+    @staticmethod
+    def __to_bin(value: bool) -> str:
+        return bin(value)[2:]
 
 
 class TseitinStrategy(Strategy[Symbol]):

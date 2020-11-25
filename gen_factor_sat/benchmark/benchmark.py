@@ -3,6 +3,7 @@ import functools
 import os
 import timeit
 
+from gen_factor_sat import utils
 from gen_factor_sat.factoring_sat import factorize_number
 
 METRICS = 'metrics.csv'
@@ -34,7 +35,7 @@ for number, runs in SCENARIOS:
     csv_data = {
         'Version': VERSION,
         'Number': number,
-        'Number length': len(bin(instance.number)[2:]),
+        'Number length': len(utils.to_bin_list(instance.number)),
         'Variables': instance.number_of_variables,
         'Clauses': len(instance.clauses),
         'Runs': runs,

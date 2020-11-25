@@ -5,7 +5,7 @@ from math import ceil
 from random import Random
 from typing import List, Set, Optional, Tuple
 
-from gen_factor_sat import strategies
+from gen_factor_sat import strategies, utils
 from gen_factor_sat.circuit import n_bit_equality
 from gen_factor_sat.multiplication import karatsuba
 from gen_factor_sat.tseitin import Clause, Variable
@@ -47,7 +47,7 @@ def factorize_random_number(seed: Optional[int]) -> FactoringSat:
 
 
 def factorize_number(number: int) -> FactoringSat:
-    bin_number = bin(number)[2:]
+    bin_number = utils.to_bin_list(number)
 
     tseitin_strategy = strategies.TseitinStrategy()
 

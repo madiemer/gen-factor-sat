@@ -4,7 +4,7 @@ from hypothesis.strategies import integers
 from pysat.formula import CNF
 from pysat.solvers import Solver
 
-from gen_factor_sat import strategies
+from gen_factor_sat import strategies, utils
 from gen_factor_sat.factoring_sat import multiply_to_cnf
 from gen_factor_sat.multiplication import karatsuba, wallace_tree
 
@@ -21,7 +21,7 @@ def test_karatsuba(x, y):
 
 @given(integers(2 ** 70, 2 ** 100), integers(2 ** 20, 2 ** 50))
 def test_split_simplification(x, y):
-    assume(len(bin(x)[2:]) > 2 * len(bin(y)[2:]))
+    assume(len(utils.to_bin_list(x)) > 2 * len(utils.to_bin_list(y)))
     assert run_eval_mult(karatsuba, x, y) == x * y
 
 
@@ -32,30 +32,29 @@ def test_tseitin_mult(factor_1, factor_2):
 
 
 def run_eval_mult(multiply, factor_1, factor_2):
-    bin_factor_1 = bin(factor_1)[2:]
-    bin_factor_2 = bin(factor_2)[2:]
+    bin_factor_1 = utils.to_bin_list(factor_1)
+    bin_factor_2 = utils.to_bin_list(factor_2)
 
     strategy = strategies.EvalStrategy()
-    result = multiply(bin_factor_1, bin_factor_2, strategy)
+    bin_result = multiply(bin_factor_1, bin_factor_2, strategy)
 
-    bin_result = ''.join(result)
-    return int(bin_result, 2)
+    return utils.to_int(bin_result)
 
 
 def run_tseitin_mult(multiply, factor_1, factor_2):
-    bin_factor_1 = bin(factor_1)[2:]
-    bin_factor_2 = bin(factor_2)[2:]
+    bin_factor_1 = utils.to_bin_list(factor_1)
+    bin_factor_2 = utils.to_bin_list(factor_2)
 
     tseitin_strategy = strategies.TseitinStrategy()
-    sym_factor_1, sym_factor_2, sym_result = multiply_to_cnf(multiply, len(bin_factor_1), len(bin_factor_2), tseitin_strategy)
+    sym_factor_1, sym_factor_2, sym_result = multiply_to_cnf(multiply, len(bin_factor_1), len(bin_factor_2),
+                                                             tseitin_strategy)
 
     assignment_1 = list(assign(sym_factor_1, bin_factor_1))
     assignment_2 = list(assign(sym_factor_2, bin_factor_2))
 
     bin_result = run_cnf(assignment_1 + assignment_2, sym_result, tseitin_strategy.clauses)
-    result = int(''.join(bin_result), 2)
 
-    return result
+    return utils.to_int(bin_result)
 
 
 def assign(variables, values):
@@ -71,4 +70,4 @@ def run_cnf(input_assignment, output_variables, clauses):
         model = solver.get_model()
 
     result_assign = [(model[r - 1] >= 0 if r != '0' else False) for r in output_variables]
-    return list(map(lambda x: bin(x)[2:], result_assign))
+    return list(map(utils.to_bin_string, result_assign))
