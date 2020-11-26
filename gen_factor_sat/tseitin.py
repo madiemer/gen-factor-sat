@@ -36,8 +36,8 @@ def or_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[C
     :return: A set of clauses encoding the OR-Gate
     """
     return {
-        frozenset([-input_1, input_2, output]),
-        frozenset([input_1, -input_2, output]),
+        frozenset([-input_1, output]),
+        frozenset([-input_2, output]),
         frozenset([input_1, input_2, -output])
     }
 

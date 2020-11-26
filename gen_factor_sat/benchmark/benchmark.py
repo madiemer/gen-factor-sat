@@ -2,12 +2,15 @@ import csv
 import functools
 import os
 import timeit
+from collections import Counter
 
 from gen_factor_sat import utils
 from gen_factor_sat.factoring_sat import factorize_number
 
 METRICS = 'metrics.csv'
-METRICS_SCHEMA = ['Version', 'Number', 'Number length', 'Variables', 'Clauses', 'Runs', 'Avg. Time[ms]']
+METRICS_SCHEMA = ['Version', 'Number', 'Number length', 'Variables',
+                  'Clauses', '1 Literal', '2 Literals', '3 Literals',
+                  'Runs', 'Avg. Time[ms]']
 
 TIMINGS = 'timings.csv'
 TIMINGS_SCHEMA = ['Version', 'Number', 'Run', 'Time [ms]']
@@ -32,12 +35,17 @@ for number, runs in SCENARIOS:
     instance = factorize_number(number=number)
     avg_time = timeit.timeit(functools.partial(factorize_number, number=number),
                              number=runs) / runs * 10 ** 3
+
+    clause_size_counter = Counter(map(len, instance.clauses))
     csv_data = {
         'Version': VERSION,
         'Number': number,
         'Number length': len(utils.to_bin_list(instance.number)),
         'Variables': instance.number_of_variables,
         'Clauses': len(instance.clauses),
+        '1 Literal': clause_size_counter[1],
+        '2 Literals': clause_size_counter[2],
+        '3 Literals': clause_size_counter[3],
         'Runs': runs,
         'Avg. Time[ms]': '{:.6f}'.format(avg_time)
     }
