@@ -88,6 +88,14 @@ class TseitinStrategy(Strategy[Symbol]):
         else:
             return -x
 
+    def wire_xor(self, x: Symbol, y: Symbol) -> Symbol:
+        if is_constant(x) or is_constant(y):
+            return constant_xor(x, y)
+        else:
+            z = self.next_variable()
+            self.__append_clauses(tseitin.xor_equality(x, y, z))
+            return z
+
     def assume(self, x: Symbol, value: Constant) -> Constant:
         if is_constant(x) and x != value:
             self.__append_clauses({tseitin.empty_clause()})
@@ -126,10 +134,29 @@ def constant_and(x, y):
 def constant_or(x, y):
     if x == ONE or y == ONE:
         return ONE
+    if x == ZERO:
+        return y
+    elif y == ZERO:
+        return x
+
+
+def constant_xor(x, y):
+    if x == ONE:
+        if is_constant(y):
+            return constant_not(y)
+        else:
+            return -y
+    elif y == ONE:
+        if is_constant(x):
+            return constant_not(x)
+        else:
+            return -x
     elif x == ZERO:
         return y
     elif y == ZERO:
         return x
+    else:
+        raise ValueError()
 
 
 def constant_not(x):

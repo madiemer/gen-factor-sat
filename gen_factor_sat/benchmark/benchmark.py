@@ -15,7 +15,7 @@ METRICS_SCHEMA = ['Version', 'Number', 'Number length', 'Variables',
 TIMINGS = 'timings.csv'
 TIMINGS_SCHEMA = ['Version', 'Number', 'Run', 'Time [ms]']
 
-VERSION = 'v1-OptZero'
+VERSION = 'EncodeXOR'
 SCENARIOS = [(355888708943419772067, 30), (3315548805509, 100)]  # (Number, Runs)
 
 

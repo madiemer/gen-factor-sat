@@ -6,10 +6,11 @@ from gen_factor_sat.strategies import T, Strategy
 
 
 def half_adder(input_1: T, input_2: T, strategy: Strategy[T]) -> Tuple[T, T]:
-    output_sum = strategy.wire_or(
-        strategy.wire_and(input_1, strategy.wire_not(input_2)),
-        strategy.wire_and(strategy.wire_not(input_1), input_2)
-    )
+    output_sum = strategy.wire_xor(input_1, input_2)
+    # output_sum = strategy.wire_or(
+    #     strategy.wire_and(input_1, strategy.wire_not(input_2)),
+    #     strategy.wire_and(strategy.wire_not(input_1), input_2)
+    # )
 
     output_carry = strategy.wire_and(input_1, input_2)
 

@@ -32,12 +32,29 @@ def or_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[C
 
     :param input_1: variable representing the first input of the OR-Gate
     :param input_2: variable representing the second input of the OR-Gate
-    :param output: variable representing the output of the AND-Gate
+    :param output: variable representing the output of the OR-Gate
     :return: A set of clauses encoding the OR-Gate
     """
     return {
         frozenset([-input_1, output]),
         frozenset([-input_2, output]),
+        frozenset([input_1, input_2, -output])
+    }
+
+
+def xor_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[Clause]:
+    """
+        Encode an XOR-Gate into a CNF.
+
+        :param input_1: variable representing the first input of the XOR-Gate
+        :param input_2: variable representing the second input of the XOR-Gate
+        :param output: variable representing the output of the XOR-Gate
+        :return: A set of clauses encoding the XOR-Gate
+        """
+    return {
+        frozenset([-input_1, -input_2, -output]),
+        frozenset([-input_1, input_2, output]),
+        frozenset([input_1, -input_2, output]),
         frozenset([input_1, input_2, -output])
     }
 
