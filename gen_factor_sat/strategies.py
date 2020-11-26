@@ -1,6 +1,7 @@
-from typing import Generic, TypeVar, List
 import operator as op
-from gen_factor_sat import tseitin, utils
+from typing import Generic, TypeVar, List
+
+from gen_factor_sat import tseitin
 from gen_factor_sat.tseitin import Symbol, Constant, Variable, ZERO, ONE
 
 T = TypeVar('T')
@@ -70,7 +71,7 @@ class TseitinStrategy(Strategy[Symbol]):
             return constant_and(x, y)
         else:
             z = self.next_variable()
-            self.clauses.update(tseitin.and_equality(x, y, z))
+            self.__append_clauses(tseitin.and_equality(x, y, z))
             return z
 
     def wire_or(self, x: Symbol, y: Symbol) -> Symbol:
@@ -78,7 +79,7 @@ class TseitinStrategy(Strategy[Symbol]):
             return constant_or(x, y)
         else:
             z = self.next_variable()
-            self.clauses.update(tseitin.or_equality(x, y, z))
+            self.__append_clauses(tseitin.or_equality(x, y, z))
             return z
 
     def wire_not(self, x: Symbol) -> Symbol:
@@ -89,12 +90,12 @@ class TseitinStrategy(Strategy[Symbol]):
 
     def assume(self, x: Symbol, value: Constant) -> Constant:
         if is_constant(x) and x != value:
-            self.clauses.add(tseitin.empty_clause())
+            self.__append_clauses({tseitin.empty_clause()})
         elif not is_constant(x):
             if value == ONE:
-                self.clauses.add(tseitin.unit_clause(x))
+                self.__append_clauses({tseitin.unit_clause(x)})
             else:
-                self.clauses.add(tseitin.unit_clause(-x))
+                self.__append_clauses({tseitin.unit_clause(-x)})
 
         return value
 
@@ -104,6 +105,9 @@ class TseitinStrategy(Strategy[Symbol]):
     def next_variable(self) -> Variable:
         self.number_of_variables += 1
         return self.number_of_variables
+
+    def __append_clauses(self, clauses):
+        self.clauses.update(clauses)
 
 
 def is_constant(x):

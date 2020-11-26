@@ -18,30 +18,41 @@ class FactoringSat:
     factor_2: List[Variable]
     number_of_variables: int
     clauses: Set[Clause]
+    max_value: Optional[int] = None
     seed: Optional[int] = None
 
     def to_dimacs(self):
-        if not self.seed:
-            number = 'c Number: {0}'.format(self.number)
-        else:
-            number = 'c Seed: {0} (Number: {1})'.format(self.seed, self.number)
+        comments = []
+        if self.max_value:
+            max_value = 'c Random number in range: 2 - {0}'.format(self.max_value)
+            comments.append(max_value)
 
+        if self.seed:
+            seed = 'c Seed: {0}'.format(self.seed)
+            comments.append(seed)
+
+        if comments:
+            comments.append('c')
+
+        number = 'c Number: {0}'.format(self.number)
         factor_1 = 'c Factor 1: {0}'.format(self.factor_1)
         factor_2 = 'c Factor 2: {0}'.format(self.factor_2)
+        comments.extend([number, factor_1, factor_2])
 
-        comments = '\n'.join([number, factor_1, factor_2])
-        cnf = result_to_dimacs(self.number_of_variables, self.clauses)
+        comment_lines = '\n'.join(comments) + '\n'
+        cnf_lines = result_to_dimacs(self.number_of_variables, self.clauses)
 
-        return comments + '\n' + cnf
+        return comment_lines + cnf_lines
 
 
-def factorize_random_number(seed: Optional[int]) -> FactoringSat:
+def factorize_random_number(max_value: int, seed: Optional[int]) -> FactoringSat:
     if not seed:
         seed = random.randrange(sys.maxsize)
 
-    number = _generate_number(seed=seed)
+    number = _generate_number(max_value=max_value, seed=seed)
     factor_sat = factorize_number(number)
     factor_sat.seed = seed
+    factor_sat.max_value = max_value
 
     return factor_sat
 
@@ -52,7 +63,8 @@ def factorize_number(number: int) -> FactoringSat:
     tseitin_strategy = strategies.TseitinStrategy()
 
     factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
-    sym_factor_1, sym_factor_2, mult_result = multiply_to_cnf(karatsuba, factor_length_1, factor_length_2, tseitin_strategy)
+    sym_factor_1, sym_factor_2, mult_result = multiply_to_cnf(karatsuba, factor_length_1, factor_length_2,
+                                                              tseitin_strategy)
     fact_result = n_bit_equality(list(bin_number), mult_result, tseitin_strategy)
     tseitin_strategy.assume(fact_result, tseitin_strategy.one())
 
@@ -69,9 +81,9 @@ def factorize_number(number: int) -> FactoringSat:
     )
 
 
-def _generate_number(seed: int) -> int:
+def _generate_number(max_value, seed: int) -> int:
     rand = Random(seed)
-    return rand.randint(2, sys.maxsize)
+    return rand.randint(2, max_value)
 
 
 def _factor_lengths(number_length: int) -> Tuple[int, int]:

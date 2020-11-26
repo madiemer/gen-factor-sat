@@ -16,13 +16,10 @@ def test_reproducibility(number):
     assert factoring_1 == factoring_2
 
 
-@given(integers())
-@example(0)
-@example(1)
-@example(-1)
-def test_seeded_reproducibility(seed):
-    number_1 = _generate_number(seed)
-    number_2 = _generate_number(seed)
+@given(integers(min_value=2), integers())
+def test_seeded_reproducibility(max_value, seed):
+    number_1 = _generate_number(max_value, seed)
+    number_2 = _generate_number(max_value, seed)
 
     assert number_1 == number_2
 
