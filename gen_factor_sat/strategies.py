@@ -20,6 +20,9 @@ class Strategy(Generic[T]):
     def wire_or(self, x: T, y: T) -> T:
         pass
 
+    def wire_xor(self, x: T, y: T) -> T:
+        pass
+
     def wire_not(self, x: T) -> T:
         pass
 
@@ -37,6 +40,9 @@ class EvalStrategy(Strategy[Constant]):
 
     def wire_or(self, x: Constant, y: Constant) -> Constant:
         return EvalStrategy.__with_bool(op.or_, x, y)
+
+    def wire_xor(self, x: T, y: T) -> T:
+        return EvalStrategy.__with_bool(op.xor, x, y)
 
     def wire_not(self, x: Constant) -> Constant:
         return EvalStrategy.__with_bool(op.not_, x)
@@ -82,12 +88,6 @@ class TseitinStrategy(Strategy[Symbol]):
             self.__append_clauses(tseitin.or_equality(x, y, z))
             return z
 
-    def wire_not(self, x: Symbol) -> Symbol:
-        if is_constant(x):
-            return constant_not(x)
-        else:
-            return -x
-
     def wire_xor(self, x: Symbol, y: Symbol) -> Symbol:
         if is_constant(x) or is_constant(y):
             return constant_xor(x, y)
@@ -95,6 +95,12 @@ class TseitinStrategy(Strategy[Symbol]):
             z = self.next_variable()
             self.__append_clauses(tseitin.xor_equality(x, y, z))
             return z
+
+    def wire_not(self, x: Symbol) -> Symbol:
+        if is_constant(x):
+            return constant_not(x)
+        else:
+            return -x
 
     def assume(self, x: Symbol, value: Constant) -> Constant:
         if is_constant(x) and x != value:

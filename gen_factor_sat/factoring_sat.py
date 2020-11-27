@@ -1,14 +1,19 @@
 import random
 import sys
+from collections import namedtuple
 from dataclasses import dataclass
 from math import ceil
 from random import Random
-from typing import List, Set, Optional, Tuple
+from typing import List, Set, Optional, Tuple, Callable
 
 from gen_factor_sat import strategies, utils
 from gen_factor_sat.circuit import n_bit_equality
 from gen_factor_sat.multiplication import karatsuba
-from gen_factor_sat.tseitin import Clause, Variable
+from gen_factor_sat.strategies import TseitinStrategy
+from gen_factor_sat.tseitin import Clause, Variable, Symbol
+
+Multiplier = Callable[[List[Symbol], List[Symbol], TseitinStrategy], List[Symbol]]
+Multiplication = namedtuple('Multiplication', ['factor_1', 'factor_2', 'result'])
 
 
 @dataclass
@@ -59,13 +64,11 @@ def factorize_random_number(max_value: int, seed: Optional[int]) -> FactoringSat
 
 def factorize_number(number: int) -> FactoringSat:
     bin_number = utils.to_bin_list(number)
+    factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
 
     tseitin_strategy = strategies.TseitinStrategy()
-
-    factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
-    sym_factor_1, sym_factor_2, mult_result = multiply_to_cnf(karatsuba, factor_length_1, factor_length_2,
-                                                              tseitin_strategy)
-    fact_result = n_bit_equality(list(bin_number), mult_result, tseitin_strategy)
+    sym_mult = multiply_to_cnf(karatsuba, factor_length_1, factor_length_2, tseitin_strategy)
+    fact_result = n_bit_equality(sym_mult.result, bin_number, tseitin_strategy)
     tseitin_strategy.assume(fact_result, tseitin_strategy.one())
 
     # For performance reasons it is better to check all clauses at
@@ -74,8 +77,8 @@ def factorize_number(number: int) -> FactoringSat:
 
     return FactoringSat(
         number=number,
-        factor_1=sym_factor_1,
-        factor_2=sym_factor_2,
+        factor_1=sym_mult.factor_1,
+        factor_2=sym_mult.factor_2,
         number_of_variables=tseitin_strategy.number_of_variables,
         clauses=tseitin_strategy.clauses
     )
@@ -93,12 +96,16 @@ def _factor_lengths(number_length: int) -> Tuple[int, int]:
     return factor_length_1, factor_length_2
 
 
-def multiply_to_cnf(multiply, factor_length_1, factor_length_2, tseitin_strategy):
+def multiply_to_cnf(
+        multiply: Multiplier,
+        factor_length_1: int,
+        factor_length_2: int,
+        tseitin_strategy: TseitinStrategy):
     factor_1 = tseitin_strategy.next_variables(factor_length_1)
     factor_2 = tseitin_strategy.next_variables(factor_length_2)
 
     mult_result = multiply(factor_1, factor_2, tseitin_strategy)
-    return factor_1, factor_2, mult_result
+    return Multiplication(factor_1, factor_2, mult_result)
 
 
 def result_to_dimacs(num_variables: int, clauses: Set[Clause]) -> str:

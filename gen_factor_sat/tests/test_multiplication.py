@@ -46,13 +46,12 @@ def run_tseitin_mult(multiply, factor_1, factor_2):
     bin_factor_2 = utils.to_bin_list(factor_2)
 
     tseitin_strategy = strategies.TseitinStrategy()
-    sym_factor_1, sym_factor_2, sym_result = multiply_to_cnf(multiply, len(bin_factor_1), len(bin_factor_2),
-                                                             tseitin_strategy)
+    sym_mult = multiply_to_cnf(multiply, len(bin_factor_1), len(bin_factor_2), tseitin_strategy)
 
-    assignment_1 = list(assign(sym_factor_1, bin_factor_1))
-    assignment_2 = list(assign(sym_factor_2, bin_factor_2))
+    assignment_1 = list(assign(sym_mult.factor_1, bin_factor_1))
+    assignment_2 = list(assign(sym_mult.factor_2, bin_factor_2))
 
-    bin_result = run_cnf(assignment_1 + assignment_2, sym_result, tseitin_strategy.clauses)
+    bin_result = run_cnf(assignment_1 + assignment_2, sym_mult.result, tseitin_strategy.clauses)
 
     return utils.to_int(bin_result)
 
