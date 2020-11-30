@@ -51,7 +51,7 @@ class FactoringSat:
 
 
 def factorize_random_number(max_value: int, seed: Optional[int]) -> FactoringSat:
-    if not seed:
+    if seed is None:
         seed = random.randrange(sys.maxsize)
 
     number = _generate_number(max_value=max_value, seed=seed)
