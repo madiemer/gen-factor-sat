@@ -39,9 +39,9 @@ class FactoringSat:
         if comments:
             comments.append('c')
 
-        number = 'c Number: {0}'.format(self.number)
-        factor_1 = 'c Factor 1: {0}'.format(self.factor_1)
-        factor_2 = 'c Factor 2: {0}'.format(self.factor_2)
+        number = 'c Factorization of the number: {0}'.format(self.number)
+        factor_1 = 'c Factor 1 is encoded in the variables: {0}'.format(self.factor_1)
+        factor_2 = 'c Factor 2 is encoded in the variables: {0}'.format(self.factor_2)
         comments.extend([number, factor_1, factor_2])
 
         comment_lines = '\n'.join(comments) + '\n'
