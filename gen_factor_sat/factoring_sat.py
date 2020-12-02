@@ -106,11 +106,11 @@ def multiply_to_cnf(
 
 
 def cnf_to_dimacs(num_variables: int, clauses: Set[Clause], comments=None) -> str:
-    if comments is not None:
+    if (comments is None) or (not comments):
+        comment_lines = ''
+    else:
         prefixed_comments = list(map('c {0}'.format, comments))
         comment_lines = '\n'.join(prefixed_comments) + '\n'
-    else:
-        comment_lines = ''
 
     problem = 'p cnf {0} {1}'.format(num_variables, len(clauses))
     dimacs_clauses = list(map(clause_to_dimacs, clauses))

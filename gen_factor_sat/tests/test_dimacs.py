@@ -32,8 +32,9 @@ def test_cnf_to_dimacs_conversion(num_vars, clauses):
     dimacs = cnf_to_dimacs(num_vars, clauses)
 
     lines = dimacs.splitlines(keepends=False)
-    assert problem_line.match(lines[0]), "The first line should contain the instance parameters"
+    assert len(lines) == 1 + len(clauses), "All clauses should be written"
 
+    assert problem_line.match(lines[0]), "The first line should contain the instance parameters"
     match = problem_line.match(lines[0])
 
     num_variables = int(match.group('variables'))
@@ -41,7 +42,22 @@ def test_cnf_to_dimacs_conversion(num_vars, clauses):
 
     assert num_variables == num_vars, "The conversion should use the provided number of variables"
     assert num_clauses == len(clauses), "The conversion should write the number of clauses"
-    assert len(lines[1:]) == len(clauses), "All clauses should be written"
+
+
+@pytest.mark.parametrize('comments', [[], ['Comment 1'], ['Comment 1', ' ', '', 'Comment 2']])
+def test_comments_should_be_prepended(comments):
+    num_vars = 13
+    clauses = {tseitin.clause([-1, 3]), tseitin.clause([-10, -5, 14])}
+    dimacs = cnf_to_dimacs(num_vars, clauses, comments=comments)
+
+    lines = dimacs.splitlines(keepends=False)
+    assert len(lines) == len(comments) + 1 + len(clauses)
+
+    for index in range(len(comments)):
+        assert comment_line.match(lines[index])
+        match = comment_line.match(lines[index])
+        parsed_comment = match.group('comment')
+        assert parsed_comment == comments[index]
 
 
 @pytest.fixture(scope='module', params=[2, 17, 2 ** 15 + 17896, 2 ** 23 + 1247561])
