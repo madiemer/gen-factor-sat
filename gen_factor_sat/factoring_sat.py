@@ -29,25 +29,22 @@ class FactoringSat:
     def to_dimacs(self):
         comments = []
         if self.max_value:
-            max_value = 'c Random number in range: 2 - {0}'.format(self.max_value)
+            max_value = 'Random number in range: 2 - {0}'.format(self.max_value)
             comments.append(max_value)
 
         if self.seed:
-            seed = 'c Seed: {0}'.format(self.seed)
+            seed = 'Seed: {0}'.format(self.seed)
             comments.append(seed)
 
         if comments:
-            comments.append('c')
+            comments.append('')
 
-        number = 'c Factorization of the number: {0}'.format(self.number)
-        factor_1 = 'c Factor 1 is encoded in the variables: {0}'.format(self.factor_1)
-        factor_2 = 'c Factor 2 is encoded in the variables: {0}'.format(self.factor_2)
+        number = 'Factorization of the number: {0}'.format(self.number)
+        factor_1 = 'Factor 1 is encoded in the variables: {0}'.format(self.factor_1)
+        factor_2 = 'Factor 2 is encoded in the variables: {0}'.format(self.factor_2)
         comments.extend([number, factor_1, factor_2])
 
-        comment_lines = '\n'.join(comments) + '\n'
-        cnf_lines = cnf_to_dimacs(self.number_of_variables, self.clauses)
-
-        return comment_lines + cnf_lines
+        return cnf_to_dimacs(self.number_of_variables, self.clauses, comments=comments)
 
 
 def factorize_random_number(max_value: int, seed: Optional[int]) -> FactoringSat:
@@ -108,9 +105,18 @@ def multiply_to_cnf(
     return Multiplication(factor_1, factor_2, mult_result)
 
 
-def cnf_to_dimacs(num_variables: int, clauses: Set[Clause]) -> str:
+def cnf_to_dimacs(num_variables: int, clauses: Set[Clause], comments=None) -> str:
+    if comments is not None:
+        prefixed_comments = list(map('c {0}'.format, comments))
+        comment_lines = '\n'.join(prefixed_comments) + '\n'
+    else:
+        comment_lines = ''
+
     problem = 'p cnf {0} {1}'.format(num_variables, len(clauses))
-    return '\n'.join([problem] + list(map(clause_to_dimacs, clauses)))
+    dimacs_clauses = list(map(clause_to_dimacs, clauses))
+    cnf_lines = '\n'.join([problem] + dimacs_clauses)
+
+    return comment_lines + cnf_lines
 
 
 def clause_to_dimacs(clause: Clause) -> str:
