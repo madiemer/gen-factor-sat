@@ -18,16 +18,16 @@ def karatsuba(factor_1: List[T], factor_2: List[T], strategy: Strategy[T], min_l
         f1_high, f1_low = split_at(factor_1, -half_factor_length)
         f2_high, f2_low = split_at(factor_2, -half_factor_length)
 
-        result_low = karatsuba(f1_low, f2_low, strategy) if f1_low and f2_low else []
-        result_high = karatsuba(f1_high, f2_high, strategy) if f1_high and f2_high else []
+        result_low = karatsuba(f1_low, f2_low, strategy)
+        result_high = karatsuba(f1_high, f2_high, strategy)
 
         # result_mid = karatsuba((f1_high + f1_low), (f2_high + f2_low)) - result_high - result_low
-        factor_1_sum = circuit.n_bit_adder(f1_high, f1_low, strategy.zero(), strategy) if f1_high else f1_low
-        factor_2_sum = circuit.n_bit_adder(f2_high, f2_low, strategy.zero(), strategy) if f2_high else f2_low
+        factor_1_sum = circuit.n_bit_adder(f1_high, f1_low, strategy.zero(), strategy)
+        factor_2_sum = circuit.n_bit_adder(f2_high, f2_low, strategy.zero(), strategy)
 
         result_mid = karatsuba(factor_1_sum, factor_2_sum, strategy)
-        result_mid = circuit.subtract(result_mid, result_high, strategy) if result_high else result_mid
-        result_mid = circuit.subtract(result_mid, result_low, strategy) if result_low else result_mid
+        result_mid = circuit.subtract(result_mid, result_high, strategy)
+        result_mid = circuit.subtract(result_mid, result_low, strategy)
 
         # result = result_high * 2^(2 * half_factor_length) + result_mid * 2^(half_factor_length) + result_low
         shifted_high = circuit.shift(result_high, half_factor_length, strategy)

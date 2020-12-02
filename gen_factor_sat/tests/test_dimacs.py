@@ -1,48 +1,113 @@
 import re
+from collections import Counter
 
-from hypothesis import given
-from hypothesis.strategies import integers
+import pytest
 
-from gen_factor_sat import factoring_sat
 from gen_factor_sat import tseitin
+from gen_factor_sat.factoring_sat import factorize_number, clause_to_dimacs, cnf_to_dimacs
 
-comment_line = re.compile('c .*')
+comment_line = re.compile('c (?P<comment>.*)')
 problem_line = re.compile('p cnf (?P<variables>\\d*) (?P<clauses>\\d*)')
 clause_line = re.compile('(-?[1-9][0-9]* )*0')
 
 
-@given(integers(2, 2 ** 10))
-def test_duplicate_variables(x):
-    factor_sat = factoring_sat.factorize_number(x)
-    dimacs = factor_sat.to_dimacs()
+@pytest.mark.parametrize('clause', [tseitin.empty_clause(), tseitin.unit_clause(42), tseitin.clause([1, -2, -4, 17])])
+def test_clauses_to_dimacs_conversion(clause):
+    dimacs_clause = clause_to_dimacs(clause)
+    assert clause_line.match(dimacs_clause), 'Clauses should match the DIMACS format'
 
-    clauses = []
-    variables = set()
-    p_line = False
+    numbers = list(map(int, dimacs_clause.split(' ')))
+    assert numbers[-1] == 0, 'Clauses (including empty clauses) should have a trailing zero'
 
+    literals = numbers[:-1]
+    assert literals == list(clause), 'The conversion should write the same literals in the same order'
+
+
+@pytest.mark.parametrize('num_vars, clauses', [
+    (0, {}),
+    (1, {tseitin.clause([-1, 3])}),
+    (17, {tseitin.clause([-1, -12, -4]), tseitin.empty_clause()})
+])
+def test_cnf_to_dimacs_conversion(num_vars, clauses):
+    dimacs = cnf_to_dimacs(num_vars, clauses)
+
+    lines = dimacs.splitlines(keepends=False)
+    assert len(lines) == 1 + len(clauses), "All clauses should be written"
+
+    assert problem_line.match(lines[0]), "The first line should contain the instance parameters"
+    match = problem_line.match(lines[0])
+
+    num_variables = int(match.group('variables'))
+    num_clauses = int(match.group('clauses'))
+
+    assert num_variables == num_vars, "The conversion should use the provided number of variables"
+    assert num_clauses == len(clauses), "The conversion should write the number of clauses"
+
+
+@pytest.mark.parametrize('comments', [[], ['Comment 1'], ['Comment 1', ' ', '', 'Comment 2']])
+def test_comments_should_be_prepended(comments):
+    num_vars = 13
+    clauses = {tseitin.clause([-1, 3]), tseitin.clause([-10, -5, 14])}
+    dimacs = cnf_to_dimacs(num_vars, clauses, comments=comments)
+
+    lines = dimacs.splitlines(keepends=False)
+    assert len(lines) == len(comments) + 1 + len(clauses)
+
+    for index in range(len(comments)):
+        assert comment_line.match(lines[index])
+        match = comment_line.match(lines[index])
+        parsed_comment = match.group('comment')
+        assert parsed_comment == comments[index]
+
+
+@pytest.fixture(scope='module', params=[2, 17, 2 ** 15 + 17896, 2 ** 23 + 1247561])
+def factoring_instance(request):
+    factor_sat = factorize_number(request.param)
+    return factor_sat
+
+
+def test_dimacs_format(factoring_instance):
+    dimacs = factoring_instance.to_dimacs()
+
+    parsed_problem_line = False
     lines = dimacs.splitlines(keepends=False)
     for line in lines:
         if comment_line.match(line):
-            assert not p_line, 'Comments are permitted before the problem line'
+            assert not parsed_problem_line, 'Comments are only permitted before the problem line'
         elif problem_line.match(line):
-            assert not p_line, 'Only a single problem line is permitted'
-            p_line = True
+            assert not parsed_problem_line, 'The DIMACS format should have exactly one problem line'
+            parsed_problem_line = True
+        elif clause_line.match(line):
+            assert parsed_problem_line, 'Clauses are only permitted after the problem line'
+        else:
+            assert not line, "Only comment lines, problem lines, or clauses are allowed"
 
-            m = problem_line.match(line)
-            num_vars = int(m.group('variables'))
-            num_clauses = int(m.group('clauses'))
+    assert parsed_problem_line, 'The DIMACS format should have exactly one problem line'
+
+
+def test_encoded_cnf(factoring_instance):
+    dimacs = factoring_instance.to_dimacs()
+
+    clauses = []
+    lines = dimacs.splitlines(keepends=False)
+    for line in lines:
+        if problem_line.match(line):
+            match = problem_line.match(line)
+
+            num_variables = int(match.group('variables'))
+            num_clauses = int(match.group('clauses'))
+
+            assert num_variables == factoring_instance.number_of_variables
+            assert num_clauses == len(factoring_instance.clauses)
 
         elif clause_line.match(line):
-            assert problem_line, 'Clauses are permitted only after the problem line'
-
             clause = list(map(int, line.split(' ')[:-1]))
-            variables.update(set(map(abs, clause)))
-            clauses.append(clause)
-        else:
-            assert not line, "Not a valid line: " + line
 
-    assert not list(filter(lambda x: not tseitin.is_no_tautology(x), clauses))
-    assert p_line, 'There should be a cnf problem encoded'
-    assert len(variables) == num_vars, 'Every variable should occur at least once'
-    assert all(x <= num_vars for x in variables), 'Variables should be numbered from 1 to the specified number'
-    assert len(clauses) == num_clauses, 'The number of clauses should match the specified number'
+            occurrences = Counter(clause)
+            assert all(occurrences[-literal] == 0 for literal in clause)
+            assert all(occurrences[literal] == 1 for literal in clause)
+
+            clauses.append(frozenset(clause))
+
+    assert len(clauses) == len(factoring_instance.clauses)
+    assert set(clauses) == factoring_instance.clauses

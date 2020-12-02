@@ -10,7 +10,7 @@ from gen_factor_sat import strategies, utils
 from gen_factor_sat.circuit import n_bit_equality
 from gen_factor_sat.multiplication import karatsuba
 from gen_factor_sat.strategies import TseitinStrategy
-from gen_factor_sat.tseitin import Clause, Variable, Symbol
+from gen_factor_sat.tseitin import Clause, Variable, Symbol, is_no_tautology
 
 Multiplier = Callable[[List[Symbol], List[Symbol], TseitinStrategy], List[Symbol]]
 Multiplication = namedtuple('Multiplication', ['factor_1', 'factor_2', 'result'])
@@ -29,29 +29,26 @@ class FactoringSat:
     def to_dimacs(self):
         comments = []
         if self.max_value:
-            max_value = 'c Random number in range: 2 - {0}'.format(self.max_value)
+            max_value = 'Random number in range: 2 - {0}'.format(self.max_value)
             comments.append(max_value)
 
         if self.seed:
-            seed = 'c Seed: {0}'.format(self.seed)
+            seed = 'Seed: {0}'.format(self.seed)
             comments.append(seed)
 
         if comments:
-            comments.append('c')
+            comments.append('')
 
-        number = 'c Factorization of the number: {0}'.format(self.number)
-        factor_1 = 'c Factor 1 is encoded in the variables: {0}'.format(self.factor_1)
-        factor_2 = 'c Factor 2 is encoded in the variables: {0}'.format(self.factor_2)
+        number = 'Factorization of the number: {0}'.format(self.number)
+        factor_1 = 'Factor 1 is encoded in the variables: {0}'.format(self.factor_1)
+        factor_2 = 'Factor 2 is encoded in the variables: {0}'.format(self.factor_2)
         comments.extend([number, factor_1, factor_2])
 
-        comment_lines = '\n'.join(comments) + '\n'
-        cnf_lines = result_to_dimacs(self.number_of_variables, self.clauses)
-
-        return comment_lines + cnf_lines
+        return cnf_to_dimacs(self.number_of_variables, self.clauses, comments=comments)
 
 
 def factorize_random_number(max_value: int, seed: Optional[int]) -> FactoringSat:
-    if not seed:
+    if seed is None:
         seed = random.randrange(sys.maxsize)
 
     number = _generate_number(max_value=max_value, seed=seed)
@@ -73,14 +70,14 @@ def factorize_number(number: int) -> FactoringSat:
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added
-    # clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
+    clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
 
     return FactoringSat(
         number=number,
         factor_1=sym_mult.factor_1,
         factor_2=sym_mult.factor_2,
         number_of_variables=tseitin_strategy.number_of_variables,
-        clauses=tseitin_strategy.clauses
+        clauses=clauses
     )
 
 
@@ -108,9 +105,18 @@ def multiply_to_cnf(
     return Multiplication(factor_1, factor_2, mult_result)
 
 
-def result_to_dimacs(num_variables: int, clauses: Set[Clause]) -> str:
+def cnf_to_dimacs(num_variables: int, clauses: Set[Clause], comments=None) -> str:
+    if (comments is None) or (not comments):
+        comment_lines = ''
+    else:
+        prefixed_comments = list(map('c {0}'.format, comments))
+        comment_lines = '\n'.join(prefixed_comments) + '\n'
+
     problem = 'p cnf {0} {1}'.format(num_variables, len(clauses))
-    return '\n'.join([problem] + list(map(clause_to_dimacs, clauses)))
+    dimacs_clauses = list(map(clause_to_dimacs, clauses))
+    cnf_lines = '\n'.join([problem] + dimacs_clauses)
+
+    return comment_lines + cnf_lines
 
 
 def clause_to_dimacs(clause: Clause) -> str:
