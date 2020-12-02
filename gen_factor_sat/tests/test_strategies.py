@@ -45,19 +45,27 @@ def test_next_variables(create_tseitin_strategy, initial_variables):
     assert tseitin_strategy.number_of_variables == initial_variables + 7
 
 
-def test_add_clauses(tseitin_strategy):
+@pytest.mark.parametrize('initial_variables', [0, 1, 42])
+def test_add_clauses(create_tseitin_strategy, initial_variables):
     variable_1 = 1
     variable_2 = -2
 
+    tseitin_strategy = create_tseitin_strategy(initial_variables)
+
     result_and = tseitin_strategy.wire_and(variable_1, variable_2)
-    assert result_and == 1
+    assert tseitin_strategy.number_of_variables == initial_variables + 1
+    assert result_and == initial_variables + 1
 
     result_or = tseitin_strategy.wire_or(variable_1, variable_2)
-    assert result_or == 2
+    assert tseitin_strategy.number_of_variables == initial_variables + 2
+    assert result_or == initial_variables + 2
 
     expected_clauses = set()
     expected_clauses.update(tseitin.and_equality(variable_1, variable_2, result_and))
     expected_clauses.update(tseitin.or_equality(variable_1, variable_2, result_or))
+
+    assert any(result_and in clause for clause in tseitin_strategy.clauses)
+    assert any(result_or in clause for clause in tseitin_strategy.clauses)
     assert tseitin_strategy.clauses == expected_clauses
 
 

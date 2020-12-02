@@ -45,7 +45,7 @@ class FactoringSat:
         comments.extend([number, factor_1, factor_2])
 
         comment_lines = '\n'.join(comments) + '\n'
-        cnf_lines = result_to_dimacs(self.number_of_variables, self.clauses)
+        cnf_lines = cnf_to_dimacs(self.number_of_variables, self.clauses)
 
         return comment_lines + cnf_lines
 
@@ -108,7 +108,7 @@ def multiply_to_cnf(
     return Multiplication(factor_1, factor_2, mult_result)
 
 
-def result_to_dimacs(num_variables: int, clauses: Set[Clause]) -> str:
+def cnf_to_dimacs(num_variables: int, clauses: Set[Clause]) -> str:
     problem = 'p cnf {0} {1}'.format(num_variables, len(clauses))
     return '\n'.join([problem] + list(map(clause_to_dimacs, clauses)))
 

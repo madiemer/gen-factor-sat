@@ -3,16 +3,50 @@ from collections import Counter
 
 import pytest
 
-from gen_factor_sat import factoring_sat
+from gen_factor_sat import tseitin
+from gen_factor_sat.factoring_sat import factorize_number, clause_to_dimacs, cnf_to_dimacs
 
-comment_line = re.compile('c .*')
+comment_line = re.compile('c (?P<comment>.*)')
 problem_line = re.compile('p cnf (?P<variables>\\d*) (?P<clauses>\\d*)')
 clause_line = re.compile('(-?[1-9][0-9]* )*0')
 
 
+@pytest.mark.parametrize('clause', [tseitin.empty_clause(), tseitin.unit_clause(42), tseitin.clause([1, -2, -4, 17])])
+def test_clauses_to_dimacs_conversion(clause):
+    dimacs_clause = clause_to_dimacs(clause)
+    assert clause_line.match(dimacs_clause), 'Clauses should match the DIMACS format'
+
+    numbers = list(map(int, dimacs_clause.split(' ')))
+    assert numbers[-1] == 0, 'Clauses (including empty clauses) should have a trailing zero'
+
+    literals = numbers[:-1]
+    assert literals == list(clause), 'The conversion should write the same literals in the same order'
+
+
+@pytest.mark.parametrize('num_vars, clauses', [
+    (0, {}),
+    (1, {tseitin.clause([-1, 3])}),
+    (17, {tseitin.clause([-1, -12, -4]), tseitin.empty_clause()})
+])
+def test_cnf_to_dimacs_conversion(num_vars, clauses):
+    dimacs = cnf_to_dimacs(num_vars, clauses)
+
+    lines = dimacs.splitlines(keepends=False)
+    assert problem_line.match(lines[0]), "The first line should contain the instance parameters"
+
+    match = problem_line.match(lines[0])
+
+    num_variables = int(match.group('variables'))
+    num_clauses = int(match.group('clauses'))
+
+    assert num_variables == num_vars, "The conversion should use the provided number of variables"
+    assert num_clauses == len(clauses), "The conversion should write the number of clauses"
+    assert len(lines[1:]) == len(clauses), "All clauses should be written"
+
+
 @pytest.fixture(scope='module', params=[2, 17, 2 ** 15 + 17896, 2 ** 23 + 1247561])
 def factoring_instance(request):
-    factor_sat = factoring_sat.factorize_number(request.param)
+    factor_sat = factorize_number(request.param)
     return factor_sat
 
 
