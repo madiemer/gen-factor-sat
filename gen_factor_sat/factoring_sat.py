@@ -7,9 +7,9 @@ from random import Random
 from typing import List, Set, Optional, Tuple, Callable
 
 from gen_factor_sat import strategies, utils
-from gen_factor_sat.circuit import n_bit_equality
-from gen_factor_sat.multiplication import karatsuba
-from gen_factor_sat.strategies import TseitinStrategy
+from gen_factor_sat.circuit import NBitCircuit
+from gen_factor_sat.multiplication import KaratsubaMultiplication, WallaceTreeMultiplier
+from gen_factor_sat.strategies import TseitinStrategy, CNFBuilder
 from gen_factor_sat.tseitin import Clause, Variable, Symbol, is_no_tautology
 
 Multiplier = Callable[[List[Symbol], List[Symbol], TseitinStrategy], List[Symbol]]
@@ -63,20 +63,35 @@ def factorize_number(number: int) -> FactoringSat:
     bin_number = utils.to_bin_list(number)
     factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
 
-    tseitin_strategy = strategies.TseitinStrategy()
-    sym_mult = multiply_to_cnf(karatsuba, factor_length_1, factor_length_2, tseitin_strategy)
-    fact_result = n_bit_equality(sym_mult.result, bin_number, tseitin_strategy)
-    tseitin_strategy.assume(fact_result, tseitin_strategy.one())
+    class TseitinMultiplication(WallaceTreeMultiplier[Symbol], strategies.TseitinStrategy):
+        def __init__(self, cnf_builder):
+            super(TseitinMultiplication, self).__init__(cnf_builder=cnf_builder)
+
+    class TestMult(KaratsubaMultiplication[Symbol], strategies.TseitinStrategy):
+        def __init__(self, simple_mult, cnf_builder):
+            super(TestMult, self).__init__(simple_mult=simple_mult, cnf_builder=cnf_builder)
+
+    cnf_builder = CNFBuilder()
+    circuit = TestMult(TseitinMultiplication(cnf_builder), cnf_builder) #type('TseitinCircuit', (NBitCircuit, strategies.TseitinStrategy), {})
+
+    factor_1 = cnf_builder.next_variables(factor_length_1)
+    factor_2 = cnf_builder.next_variables(factor_length_2)
+
+    mult_result = circuit.multiply(factor_1, factor_2)
+
+    #sym_mult = multiply_to_cnf(karatsuba, factor_length_1, factor_length_2, circuit)
+    fact_result = circuit.n_bit_equality(mult_result, bin_number)
+    circuit.assume(fact_result, circuit.one())
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added
-    clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
+    clauses = set(filter(is_no_tautology, cnf_builder.clauses))
 
     return FactoringSat(
         number=number,
-        factor_1=sym_mult.factor_1,
-        factor_2=sym_mult.factor_2,
-        number_of_variables=tseitin_strategy.number_of_variables,
+        factor_1=factor_1,
+        factor_2=factor_2,
+        number_of_variables=cnf_builder.number_of_variables,
         clauses=clauses
     )
 

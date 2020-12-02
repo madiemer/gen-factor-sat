@@ -62,9 +62,8 @@ class EvalStrategy(Strategy[Constant]):
 
 class TseitinStrategy(Strategy[Symbol]):
 
-    def __init__(self, number_of_variables=0):
-        self.number_of_variables = number_of_variables
-        self.clauses = set()
+    def __init__(self, cnf_builder):
+        self.cnf_builder = cnf_builder
 
     def zero(self) -> Constant:
         return '0'
@@ -76,24 +75,24 @@ class TseitinStrategy(Strategy[Symbol]):
         if is_constant(x) or is_constant(y):
             return constant_and(x, y)
         else:
-            z = self.next_variable()
-            self.__append_clauses(tseitin.and_equality(x, y, z))
+            z = self.cnf_builder.next_variable()
+            self.cnf_builder.append_clauses(tseitin.and_equality(x, y, z))
             return z
 
     def wire_or(self, x: Symbol, y: Symbol) -> Symbol:
         if is_constant(x) or is_constant(y):
             return constant_or(x, y)
         else:
-            z = self.next_variable()
-            self.__append_clauses(tseitin.or_equality(x, y, z))
+            z = self.cnf_builder.next_variable()
+            self.cnf_builder.append_clauses(tseitin.or_equality(x, y, z))
             return z
 
     def wire_xor(self, x: Symbol, y: Symbol) -> Symbol:
         if is_constant(x) or is_constant(y):
             return constant_xor(x, y)
         else:
-            z = self.next_variable()
-            self.__append_clauses(tseitin.xor_equality(x, y, z))
+            z = self.cnf_builder.next_variable()
+            self.cnf_builder.append_clauses(tseitin.xor_equality(x, y, z))
             return z
 
     def wire_not(self, x: Symbol) -> Symbol:
@@ -104,14 +103,20 @@ class TseitinStrategy(Strategy[Symbol]):
 
     def assume(self, x: Symbol, value: Constant) -> Constant:
         if is_constant(x) and x != value:
-            self.__append_clauses({tseitin.empty_clause()})
+            self.cnf_builder.append_clauses({tseitin.empty_clause()})
         elif not is_constant(x):
             if value == ONE:
-                self.__append_clauses({tseitin.unit_clause(x)})
+                self.cnf_builder.append_clauses({tseitin.unit_clause(x)})
             else:
-                self.__append_clauses({tseitin.unit_clause(-x)})
+                self.cnf_builder.append_clauses({tseitin.unit_clause(-x)})
 
         return value
+
+
+class CNFBuilder:
+    def __init__(self, number_of_variables=0):
+        self.number_of_variables = number_of_variables
+        self.clauses = set()
 
     def next_variables(self, amount) -> List[Variable]:
         return [self.next_variable() for _ in range(amount)]
@@ -120,7 +125,7 @@ class TseitinStrategy(Strategy[Symbol]):
         self.number_of_variables += 1
         return self.number_of_variables
 
-    def __append_clauses(self, clauses):
+    def append_clauses(self, clauses):
         self.clauses.update(clauses)
 
 
