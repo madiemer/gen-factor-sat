@@ -10,7 +10,7 @@ from gen_factor_sat import strategies, utils
 from gen_factor_sat.circuit import n_bit_equality
 from gen_factor_sat.multiplication import karatsuba
 from gen_factor_sat.strategies import TseitinStrategy
-from gen_factor_sat.tseitin import Clause, Variable, Symbol
+from gen_factor_sat.tseitin import Clause, Variable, Symbol, is_no_tautology
 
 Multiplier = Callable[[List[Symbol], List[Symbol], TseitinStrategy], List[Symbol]]
 Multiplication = namedtuple('Multiplication', ['factor_1', 'factor_2', 'result'])
@@ -70,14 +70,14 @@ def factorize_number(number: int) -> FactoringSat:
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added
-    # clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
+    clauses = set(filter(is_no_tautology, tseitin_strategy.clauses))
 
     return FactoringSat(
         number=number,
         factor_1=sym_mult.factor_1,
         factor_2=sym_mult.factor_2,
         number_of_variables=tseitin_strategy.number_of_variables,
-        clauses=tseitin_strategy.clauses
+        clauses=clauses
     )
 
 

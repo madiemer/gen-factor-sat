@@ -1,3 +1,5 @@
+from collections import Counter
+
 import pytest
 from hypothesis import given
 from hypothesis.strategies import integers
@@ -55,18 +57,18 @@ def test_prime_number(prime):
         assert not solver.solve(), "The formula generated for a prime number should be in UNSAT"
 
 
-@given(integers(min_value=2, max_value=2 ** 10))
-# @settings(max_examples=1)
-def test_clauses_have_no_duplicate_variables(n):
-    factor_sat = factorize_number(n)
+@given(integers(min_value=2, max_value=2 ** 25))
+def test_clauses_have_no_duplicate_variables(number):
+    factor_sat = factorize_number(number)
     for clause in factor_sat.clauses:
-        assert isinstance(clause, frozenset)
-        assert all(-x not in clause for x in clause)
+        occurrences = Counter(clause)
+        assert all(occurrences[-literal] == 0 for literal in clause)
+        assert all(occurrences[literal] == 1 for literal in clause)
 
 
-@given(integers(min_value=2, max_value=2 ** 10))
-def test_every_variable_should_occur_at_least_once(n):
-    factor_sat = factorize_number(n)
+@given(integers(min_value=2, max_value=2 ** 25))
+def test_every_variable_should_occur_at_least_once(number):
+    factor_sat = factorize_number(number)
 
     variables = set()
     for clause in factor_sat.clauses:
