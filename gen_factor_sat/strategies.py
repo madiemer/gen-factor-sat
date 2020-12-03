@@ -1,40 +1,10 @@
-import operator as op
-from typing import List
+from typing import List, TypeVar
 
 from gen_factor_sat import tseitin
-from gen_factor_sat.circuit import GateStrategy, CircuitStrategy
+from gen_factor_sat.circuit import GateStrategy, GeneralCircuitStrategy
 from gen_factor_sat.tseitin import Symbol, Constant, Variable, ZERO, ONE
 
-
-class BooleanStrategy(GateStrategy[Constant]):
-
-    def zero(self) -> Constant:
-        return '0'
-
-    def one(self) -> Constant:
-        return '1'
-
-    def wire_and(self, x: Constant, y: Constant) -> Constant:
-        return BooleanStrategy.__with_bool(op.and_, x, y)
-
-    def wire_or(self, x: Constant, y: Constant) -> Constant:
-        return BooleanStrategy.__with_bool(op.or_, x, y)
-
-    def wire_not(self, x: Constant) -> Constant:
-        return BooleanStrategy.__with_bool(op.not_, x)
-
-    @staticmethod
-    def __with_bool(func, *args):
-        return BooleanStrategy.__to_bin(func(*iter(map(BooleanStrategy.__to_bool, args))))
-
-    @staticmethod
-    def __to_bool(value: str) -> bool:
-        return value == '1'
-
-    @staticmethod
-    def __to_bin(value: bool) -> str:
-        return bin(value)[2:]
-
+T = TypeVar('T')
 
 class TseitinStrategy(GateStrategy[Symbol]):
 
@@ -70,7 +40,7 @@ class TseitinStrategy(GateStrategy[Symbol]):
             return -x
 
 
-class TseitinCircuitStrategy(CircuitStrategy[Symbol]):
+class TseitinCircuitStrategy(GeneralCircuitStrategy[Symbol]):
     def __init__(self, cnf_builder, gate_strategy):
         super(TseitinCircuitStrategy, self).__init__(gate_strategy=gate_strategy)
         self.cnf_builder = cnf_builder

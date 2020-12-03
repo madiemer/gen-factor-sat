@@ -1,7 +1,11 @@
 import functools
 import itertools
+import operator as op
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Generic, TypeVar
+from typing import List
+from typing import Tuple, Generic, TypeVar
+
+from gen_factor_sat.tseitin import Constant
 
 T = TypeVar('T')
 
@@ -28,9 +32,59 @@ class GateStrategy(Generic[T], ABC):
     def wire_not(self, x: T) -> T:
         pass
 
-class CircuitStrategy(Generic[T]):
 
-    def __init__(self, gate_strategy):
+class BooleanStrategy(GateStrategy[Constant]):
+
+    def zero(self) -> Constant:
+        return '0'
+
+    def one(self) -> Constant:
+        return '1'
+
+    def wire_and(self, x: Constant, y: Constant) -> Constant:
+        return BooleanStrategy.__with_bool(op.and_, x, y)
+
+    def wire_or(self, x: Constant, y: Constant) -> Constant:
+        return BooleanStrategy.__with_bool(op.or_, x, y)
+
+    def wire_not(self, x: Constant) -> Constant:
+        return BooleanStrategy.__with_bool(op.not_, x)
+
+    @staticmethod
+    def __with_bool(func, *args):
+        return BooleanStrategy.__to_bin(func(*iter(map(BooleanStrategy.__to_bool, args))))
+
+    @staticmethod
+    def __to_bool(value: str) -> bool:
+        return value == '1'
+
+    @staticmethod
+    def __to_bin(value: bool) -> str:
+        return bin(value)[2:]
+
+
+class CircuitStrategy(Generic[T], ABC):
+
+    @abstractmethod
+    def half_adder(self, input_1: T, input_2: T) -> Tuple[T, T]:
+        pass
+
+    @abstractmethod
+    def full_adder(self, input_1: T, input_2: T, carry: T) -> Tuple[T, T]:
+        pass
+
+    @abstractmethod
+    def equality(self, input_1: T, input_2: T) -> T:
+        pass
+
+    @abstractmethod
+    def xor(self, input_1: T, input_2: T) -> T:
+        pass
+
+
+class GeneralCircuitStrategy(CircuitStrategy[T]):
+
+    def __init__(self, gate_strategy: GateStrategy[T]):
         self.gate_strategy = gate_strategy
 
     def half_adder(self, input_1: T, input_2: T) -> Tuple[T, T]:
@@ -63,9 +117,32 @@ class CircuitStrategy(Generic[T]):
         )
 
 
-class NBitCircuitStrategy(Generic[T]):
+class NBitCircuitStrategy(Generic[T], ABC):
 
-    def __init__(self, gate_strategy, circuit_strategy):
+    @abstractmethod
+    def n_bit_adder(self, inputs_1: List[T], inputs_2: List[T], carry: T) -> List[T]:
+        pass
+
+    @abstractmethod
+    def subtract(self, inputs_1: List[T], inputs_2: List[T]) -> List[T]:
+        pass
+
+    @abstractmethod
+    def n_bit_equality(self, inputs_1: List[T], inputs_2: List[T]) -> T:
+        pass
+
+    @abstractmethod
+    def shift(self, inputs_1: List[T], shifts: int) -> List[T]:
+        pass
+
+    @abstractmethod
+    def align(self, inputs_1: List[T], inputs_2: List[T]) -> Tuple[List[T], List[T]]:
+        pass
+
+
+class GeneralNBitCircuitStrategy(NBitCircuitStrategy[T]):
+
+    def __init__(self, gate_strategy: GateStrategy[T], circuit_strategy: GeneralCircuitStrategy[T]):
         self.gate_strategy = gate_strategy
         self.circuit_strategy = circuit_strategy
 

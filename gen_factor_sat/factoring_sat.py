@@ -8,7 +8,7 @@ from typing import List, Set, Optional, Tuple, Callable
 
 from gen_factor_sat import utils
 from gen_factor_sat.strategies import TseitinStrategy, CNFBuilder, TseitinCircuitStrategy
-from gen_factor_sat.circuit import NBitCircuitStrategy
+from gen_factor_sat.circuit import GeneralNBitCircuitStrategy
 from gen_factor_sat.multiplication import KaratsubaMultiplication, WallaceTreeMultiplier
 from gen_factor_sat.tseitin import Clause, Variable, Symbol, is_no_tautology
 
@@ -74,7 +74,7 @@ def factorize_number(number: int) -> FactoringSat:
     cnf_builder = CNFBuilder()
     gate_strategy = TseitinStrategy(cnf_builder)
     simple_circuit = TseitinCircuitStrategy(cnf_builder=cnf_builder, gate_strategy=gate_strategy)
-    n_bit_circuit = NBitCircuitStrategy(gate_strategy=gate_strategy, circuit_strategy=simple_circuit)
+    n_bit_circuit = GeneralNBitCircuitStrategy(gate_strategy=gate_strategy, circuit_strategy=simple_circuit)
 
     wallace_mult = WallaceTreeMultiplier(gate_strategy=gate_strategy, simple_circuit=simple_circuit)
     karatsuba = KaratsubaMultiplication(gate_strategy=gate_strategy, n_bit_circuit=n_bit_circuit,
@@ -91,41 +91,6 @@ def factorize_number(number: int) -> FactoringSat:
     fact_result = fact.factorize(factor_1, factor_2, bin_number)
 
     simple_circuit.assume(fact_result, gate_strategy.one())
-
-    # For performance reasons it is better to check all clauses at
-    # once instead of checking the clauses whenever they are added
-    clauses = set(filter(is_no_tautology, cnf_builder.clauses))
-
-    return FactoringSat(
-        number=number,
-        factor_1=factor_1,
-        factor_2=factor_2,
-        number_of_variables=cnf_builder.number_of_variables,
-        clauses=clauses
-    )
-
-
-def factorize_number2(number: int) -> FactoringSat:
-    bin_number = utils.to_bin_list(number)
-    factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
-
-    cnf_builder = CNFBuilder()
-    strategy = TseitinStrategy(cnf_builder)
-    simple_circuit = TseitinCircuitStrategy(strategy)
-    circuit = NBitCircuitStrategy(strategy, simple_circuit)
-
-    wallace_mult = WallaceTreeMultiplier(gate_strategy=strategy, simple_circuit=simple_circuit)
-    karatsuba = KaratsubaMultiplication(gate_strategy=strategy, n_bit_circuit=circuit,
-                                        simple_multiplication=wallace_mult)
-
-    factor_1 = cnf_builder.next_variables(factor_length_1)
-    factor_2 = cnf_builder.next_variables(factor_length_2)
-
-    mult_result = karatsuba.multiply(factor_1, factor_2)
-
-    # sym_mult = multiply_to_cnf(karatsuba, factor_length_1, factor_length_2, circuit)
-    fact_result = circuit.n_bit_equality(mult_result, bin_number)
-    strategy.assume(fact_result, strategy.one())
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added

@@ -4,22 +4,22 @@ from gen_factor_sat import strategies, tseitin
 
 
 @pytest.fixture()
-def create_tseitin_strategy():
-    def _create_tseitin_strategy(initial_variables=0):
+def create_cnf_builder():
+    def _create_cnf_builder(initial_variables=0):
         if initial_variables is 0:
-            tseitin_strategy = strategies.TseitinStrategy()
+            cnf_builder = strategies.CNFBuilder()
         else:
-            tseitin_strategy = strategies.TseitinStrategy(initial_variables)
+            cnf_builder = strategies.CNFBuilder(initial_variables)
 
-        assert tseitin_strategy.number_of_variables == initial_variables
-        return tseitin_strategy
+        assert cnf_builder.number_of_variables == initial_variables
+        return cnf_builder
 
-    return _create_tseitin_strategy
+    return _create_cnf_builder
 
 
 @pytest.fixture()
-def tseitin_strategy(create_tseitin_strategy):
-    return create_tseitin_strategy()
+def tseitin_strategy(create_cnf_builder):
+    return create_cnf_builder()
 
 
 @pytest.fixture()
@@ -28,29 +28,29 @@ def eval_strategy():
 
 
 @pytest.mark.parametrize('initial_variables', [0, 1, 42])
-def test_next_variables(create_tseitin_strategy, initial_variables):
-    tseitin_strategy = create_tseitin_strategy(initial_variables)
+def test_next_variables(create_cnf_builder, initial_variables):
+    cnf_builder = create_cnf_builder(initial_variables)
 
     for i in range(20):
-        assert tseitin_strategy.next_variable() == initial_variables + i + 1
-        assert tseitin_strategy.number_of_variables == initial_variables + i + 1
+        assert cnf_builder.next_variable() == initial_variables + i + 1
+        assert cnf_builder.number_of_variables == initial_variables + i + 1
 
 
 @pytest.mark.parametrize('initial_variables', [0, 1, 42])
-def test_next_variables(create_tseitin_strategy, initial_variables):
-    tseitin_strategy = create_tseitin_strategy(initial_variables)
+def test_next_variables(create_cnf_builder, initial_variables):
+    cnf_builder = create_cnf_builder(initial_variables)
 
     expected_variables = list(range(initial_variables + 1, initial_variables + 8))
-    assert tseitin_strategy.next_variables(7) == expected_variables
-    assert tseitin_strategy.number_of_variables == initial_variables + 7
+    assert cnf_builder.next_variables(7) == expected_variables
+    assert cnf_builder.number_of_variables == initial_variables + 7
 
 
 @pytest.mark.parametrize('initial_variables', [0, 1, 42])
-def test_add_clauses(create_tseitin_strategy, initial_variables):
+def test_add_clauses(create_cnf_builder, initial_variables):
     variable_1 = 1
     variable_2 = -2
 
-    tseitin_strategy = create_tseitin_strategy(initial_variables)
+    tseitin_strategy = create_cnf_builder(initial_variables)
 
     result_and = tseitin_strategy.wire_and(variable_1, variable_2)
     assert tseitin_strategy.number_of_variables == initial_variables + 1

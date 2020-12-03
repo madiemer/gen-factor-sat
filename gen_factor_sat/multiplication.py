@@ -1,12 +1,16 @@
 import itertools
-from typing import List, Tuple, Generic
+from abc import ABC, abstractmethod
+from typing import List, Tuple, Generic, TypeVar
 
 from gen_factor_sat import utils
-from gen_factor_sat.circuit import T, GateStrategy, CircuitStrategy, NBitCircuitStrategy
+from gen_factor_sat.circuit import GateStrategy, CircuitStrategy, NBitCircuitStrategy
+
+T = TypeVar('T')
 
 
-class Multiplication(Generic[T]):
+class Multiplication(Generic[T], ABC):
 
+    @abstractmethod
     def multiply(self, factor_1: List[T], factor_2: List[T]) -> List[T]:
         pass
 
