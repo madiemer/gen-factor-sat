@@ -8,6 +8,7 @@ from typing import List, Set, Optional, Tuple, Callable
 
 from gen_factor_sat import strategies, utils
 from gen_factor_sat.circ_build import TseitinStrategy, CNFBuilder
+from gen_factor_sat.circuit import SimpleCircuit, NBitCircuit
 from gen_factor_sat.multiplication import KaratsubaMultiplication, WallaceTreeMultiplier
 from gen_factor_sat.tseitin import Clause, Variable, Symbol, is_no_tautology
 
@@ -63,7 +64,10 @@ def factorize_number(number: int) -> FactoringSat:
     factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
 
     cnf_builder = CNFBuilder()
-    circuit = TseitinStrategy(cnf_builder)
+    strategy = TseitinStrategy(cnf_builder)
+    simple_circuit = SimpleCircuit(strategy)
+    circuit = NBitCircuit(strategy, simple_circuit)
+
     wallace_mult = WallaceTreeMultiplier(circuit)
     karatsuba = KaratsubaMultiplication(circuit, wallace_mult)
 
@@ -74,7 +78,7 @@ def factorize_number(number: int) -> FactoringSat:
 
     #sym_mult = multiply_to_cnf(karatsuba, factor_length_1, factor_length_2, circuit)
     fact_result = circuit.n_bit_equality(mult_result, bin_number)
-    circuit.assume(fact_result, circuit.one())
+    strategy.assume(fact_result, strategy.one())
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added
