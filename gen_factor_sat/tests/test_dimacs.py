@@ -3,7 +3,7 @@ from collections import Counter
 
 import pytest
 
-from gen_factor_sat import tseitin
+from gen_factor_sat import tseitin_encoding
 from gen_factor_sat.factoring_sat import factorize_number, clause_to_dimacs, cnf_to_dimacs
 
 comment_line = re.compile('c (?P<comment>.*)')
@@ -11,7 +11,7 @@ problem_line = re.compile('p cnf (?P<variables>\\d*) (?P<clauses>\\d*)')
 clause_line = re.compile('(-?[1-9][0-9]* )*0')
 
 
-@pytest.mark.parametrize('clause', [tseitin.empty_clause(), tseitin.unit_clause(42), tseitin.clause([1, -2, -4, 17])])
+@pytest.mark.parametrize('clause', [tseitin_encoding.empty_clause(), tseitin_encoding.unit_clause(42), tseitin_encoding.clause([1, -2, -4, 17])])
 def test_clauses_to_dimacs_conversion(clause):
     dimacs_clause = clause_to_dimacs(clause)
     assert clause_line.match(dimacs_clause), 'Clauses should match the DIMACS format'
@@ -25,8 +25,8 @@ def test_clauses_to_dimacs_conversion(clause):
 
 @pytest.mark.parametrize('num_vars, clauses', [
     (0, {}),
-    (1, {tseitin.clause([-1, 3])}),
-    (17, {tseitin.clause([-1, -12, -4]), tseitin.empty_clause()})
+    (1, {tseitin_encoding.clause([-1, 3])}),
+    (17, {tseitin_encoding.clause([-1, -12, -4]), tseitin_encoding.empty_clause()})
 ])
 def test_cnf_to_dimacs_conversion(num_vars, clauses):
     dimacs = cnf_to_dimacs(num_vars, clauses)
@@ -47,7 +47,7 @@ def test_cnf_to_dimacs_conversion(num_vars, clauses):
 @pytest.mark.parametrize('comments', [[], ['Comment 1'], ['Comment 1', ' ', '', 'Comment 2']])
 def test_comments_should_be_prepended(comments):
     num_vars = 13
-    clauses = {tseitin.clause([-1, 3]), tseitin.clause([-10, -5, 14])}
+    clauses = {tseitin_encoding.clause([-1, 3]), tseitin_encoding.clause([-10, -5, 14])}
     dimacs = cnf_to_dimacs(num_vars, clauses, comments=comments)
 
     lines = dimacs.splitlines(keepends=False)

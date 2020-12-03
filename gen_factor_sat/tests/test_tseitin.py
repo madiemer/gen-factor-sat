@@ -2,7 +2,7 @@ import itertools
 
 import pytest
 
-from gen_factor_sat import tseitin
+from gen_factor_sat import tseitin_encoding
 
 
 @pytest.mark.skip("Currently not supported")
@@ -14,8 +14,8 @@ def test_duplicate_variables():
     combinations = [(x, y, z) for x in test_values for y in test_values for z in test_values]
 
     for x, y, z in combinations:
-        assert not list(filter(has_duplicates, tseitin.and_equality(x, y, z)))
-        assert not list(filter(has_duplicates, tseitin.or_equality(x, y, z)))
+        assert not list(filter(has_duplicates, tseitin_encoding.and_equality(x, y, z)))
+        assert not list(filter(has_duplicates, tseitin_encoding.or_equality(x, y, z)))
 
 
 @pytest.mark.skip("Currently not supported")
@@ -25,11 +25,11 @@ def test_tautologies():
     combinations = list(itertools.product(test_values, repeat=3))
 
     for x, y, z in combinations:
-        for clause in tseitin.and_equality(x, y, z):
-            assert tseitin.is_no_tautology(clause)
+        for clause in tseitin_encoding.and_equality(x, y, z):
+            assert tseitin_encoding.is_no_tautology(clause)
 
-        for clause in tseitin.or_equality(x, y, z):
-            assert tseitin.is_no_tautology(clause)
+        for clause in tseitin_encoding.or_equality(x, y, z):
+            assert tseitin_encoding.is_no_tautology(clause)
 
 
 def has_duplicates(clause):
@@ -43,7 +43,7 @@ def test_and_encoding():
     def and_equality(a, b, c):
         return (a and b) == c
 
-    check_assignments(variables, tseitin.and_equality(*variables), and_equality)
+    check_assignments(variables, tseitin_encoding.and_equality(*variables), and_equality)
 
 
 def test_or_encoding():
@@ -52,7 +52,7 @@ def test_or_encoding():
     def or_equality(a, b, c):
         return (a or b) == c
 
-    check_assignments(variables, tseitin.or_equality(*variables), or_equality)
+    check_assignments(variables, tseitin_encoding.or_equality(*variables), or_equality)
 
 
 def test_xor_encoding():
@@ -61,7 +61,7 @@ def test_xor_encoding():
     def xor_equality(a, b, c):
         return (a ^ b) == c
 
-    check_assignments(variables, tseitin.xor_equality(*variables), xor_equality)
+    check_assignments(variables, tseitin_encoding.xor_equality(*variables), xor_equality)
 
 
 def test_equal_encoding():
@@ -70,7 +70,7 @@ def test_equal_encoding():
     def equal_equality(a, b, c):
         return (a == b) == c
 
-    check_assignments(variables, tseitin.equal_equality(*variables), equal_equality)
+    check_assignments(variables, tseitin_encoding.equal_equality(*variables), equal_equality)
 
 
 def check_assignments(variables, clauses, bool_expr):

@@ -8,30 +8,30 @@ from gen_factor_sat.circuit import GateStrategy, CircuitStrategy, NBitCircuitStr
 T = TypeVar('T')
 
 
-class Multiplication(Generic[T], ABC):
+class Multiplier(Generic[T], ABC):
 
     @abstractmethod
     def multiply(self, factor_1: List[T], factor_2: List[T]) -> List[T]:
         pass
 
 
-class KaratsubaMultiplication(Multiplication):
+class KaratsubaMultiplier(Multiplier):
 
     def __init__(self,
                  gate_strategy: GateStrategy[T],
                  n_bit_circuit: NBitCircuitStrategy[T],
-                 simple_multiplication: Multiplication[T],
+                 simple_multiplier: Multiplier[T],
                  min_len=20):
         self.circuit = gate_strategy
         self.n_bit_circuit = n_bit_circuit
-        self.simple_multiplication = simple_multiplication
+        self.simple_multiplier = simple_multiplier
         self.min_len = min_len
 
     def multiply(self, factor_1: List[T], factor_2: List[T]) -> List[T]:
         max_factor_length = max(len(factor_1), len(factor_2))
 
         if max_factor_length <= self.min_len:
-            return self.simple_multiplication.multiply(factor_1, factor_2)
+            return self.simple_multiplier.multiply(factor_1, factor_2)
         else:
             half_factor_length = (max_factor_length + 1) // 2
 
@@ -42,8 +42,8 @@ class KaratsubaMultiplication(Multiplication):
             result_high = self.multiply(f1_high, f2_high)
 
             # result_mid = karatsuba((f1_high + f1_low), (f2_high + f2_low)) - result_high - result_low
-            factor_1_sum = self.n_bit_circuit.n_bit_adder(f1_high, f1_low, self.circuit.zero())
-            factor_2_sum = self.n_bit_circuit.n_bit_adder(f2_high, f2_low, self.circuit.zero())
+            factor_1_sum = self.n_bit_circuit.n_bit_adder(f1_high, f1_low, self.circuit.zero)
+            factor_2_sum = self.n_bit_circuit.n_bit_adder(f2_high, f2_low, self.circuit.zero)
 
             result_mid = self.multiply(factor_1_sum, factor_2_sum)
             result_mid = self.n_bit_circuit.subtract(result_mid, result_high)
@@ -51,15 +51,15 @@ class KaratsubaMultiplication(Multiplication):
 
             # result = result_high * 2^(2 * half_factor_length) + result_mid * 2^(half_factor_length) + result_low
             shifted_high = self.n_bit_circuit.shift(result_high, half_factor_length)
-            result = self.n_bit_circuit.n_bit_adder(shifted_high, result_mid, self.circuit.zero())
+            result = self.n_bit_circuit.n_bit_adder(shifted_high, result_mid, self.circuit.zero)
 
             shifted_high = self.n_bit_circuit.shift(result, half_factor_length)
-            result = self.n_bit_circuit.n_bit_adder(shifted_high, result_low, self.circuit.zero())
+            result = self.n_bit_circuit.n_bit_adder(shifted_high, result_low, self.circuit.zero)
 
             return result
 
 
-class WallaceTreeMultiplier(Multiplication):
+class WallaceTreeMultiplier(Multiplier):
 
     def __init__(self, gate_strategy: GateStrategy[T], simple_circuit: CircuitStrategy[T]):
         self.gate_strategy = gate_strategy
@@ -77,7 +77,7 @@ class WallaceTreeMultiplier(Multiplication):
             grouped_products = utils.group(products)
 
         result = []
-        last_carry = self.gate_strategy.zero()
+        last_carry = self.gate_strategy.zero
         for key in sorted(grouped_products):
             products = grouped_products[key]
 

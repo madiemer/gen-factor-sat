@@ -1,13 +1,24 @@
-from typing import Union, Set, FrozenSet, List
+from typing import Union, Set, FrozenSet, List, NewType
 
-Constant = str
-Variable = int
+Constant = NewType('Constant', str)
+Variable = NewType('Variable', int)
 Symbol = Union[Constant, Variable]
 
 Clause = FrozenSet[Variable]
 
-ZERO: Constant = '0'
-ONE: Constant = '1'
+
+def constant(x: str) -> Constant:
+    if x == '0' or x == '1':
+        return Constant(x)
+    else:
+        raise ValueError('{0} is no constant'.format(x))
+
+
+def variable(x: int) -> Variable:
+    if x != 0:
+        return Variable(x)
+    else:
+        raise ValueError('0 cannot be used as variable')
 
 
 def and_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[Clause]:

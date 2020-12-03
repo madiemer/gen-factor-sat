@@ -5,17 +5,17 @@ from abc import ABC, abstractmethod
 from typing import List
 from typing import Tuple, Generic, TypeVar
 
-from gen_factor_sat.tseitin import Constant
-
 T = TypeVar('T')
 
 
 class GateStrategy(Generic[T], ABC):
 
+    @property
     @abstractmethod
     def zero(self) -> T:
         pass
 
+    @property
     @abstractmethod
     def one(self) -> T:
         pass
@@ -32,22 +32,21 @@ class GateStrategy(Generic[T], ABC):
     def wire_not(self, x: T) -> T:
         pass
 
+    def is_constant(self, x: T) -> bool:
+        return (x == self.zero) or (x == self.one)
 
-class BooleanStrategy(GateStrategy[Constant]):
 
-    def zero(self) -> Constant:
-        return '0'
+class BooleanStrategy(GateStrategy[str]):
+    zero: str = '0'
+    one: str = '1'
 
-    def one(self) -> Constant:
-        return '1'
-
-    def wire_and(self, x: Constant, y: Constant) -> Constant:
+    def wire_and(self, x: str, y: str) -> str:
         return BooleanStrategy.__with_bool(op.and_, x, y)
 
-    def wire_or(self, x: Constant, y: Constant) -> Constant:
+    def wire_or(self, x: str, y: str) -> str:
         return BooleanStrategy.__with_bool(op.or_, x, y)
 
-    def wire_not(self, x: Constant) -> Constant:
+    def wire_not(self, x: str) -> str:
         return BooleanStrategy.__with_bool(op.not_, x)
 
     @staticmethod
@@ -193,7 +192,7 @@ class GeneralNBitCircuitStrategy(NBitCircuitStrategy[T]):
         aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2)
 
         complement = list(map(self.gate_strategy.wire_not, aligned_inputs_2))
-        output_sum = self.n_bit_adder(aligned_inputs_1, complement, self.gate_strategy.one())
+        output_sum = self.n_bit_adder(aligned_inputs_1, complement, self.gate_strategy.one)
 
         return output_sum[1:]  # Carry is not needed
 
@@ -206,10 +205,10 @@ class GeneralNBitCircuitStrategy(NBitCircuitStrategy[T]):
         return all_equal
 
     def shift(self, inputs_1: List[T], shifts: int) -> List[T]:
-        return inputs_1 + [self.gate_strategy.zero()] * shifts
+        return inputs_1 + [self.gate_strategy.zero] * shifts
 
     def align(self, inputs_1: List[T], inputs_2: List[T]) -> Tuple[List[T], List[T]]:
-        aligned_inputs_1 = ([self.gate_strategy.zero()] * (len(inputs_2) - len(inputs_1))) + inputs_1
-        aligned_inputs_2 = ([self.gate_strategy.zero()] * (len(inputs_1) - len(inputs_2))) + inputs_2
+        aligned_inputs_1 = ([self.gate_strategy.zero] * (len(inputs_2) - len(inputs_1))) + inputs_1
+        aligned_inputs_2 = ([self.gate_strategy.zero] * (len(inputs_1) - len(inputs_2))) + inputs_2
 
         return aligned_inputs_1, aligned_inputs_2

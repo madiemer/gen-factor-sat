@@ -4,9 +4,9 @@ from hypothesis.strategies import integers
 from pysat.formula import CNF
 from pysat.solvers import Solver
 
-from gen_factor_sat import strategies, utils
+from gen_factor_sat import tseitin_strategies, utils
 from gen_factor_sat.factoring_sat import multiply_to_cnf
-from gen_factor_sat.multiplication import KaratsubaMultiplication, WallaceTreeMultiplier
+from gen_factor_sat.multiplier import KaratsubaMultiplier, WallaceTreeMultiplier
 
 @given(integers(0, 2 ** 40), integers(0, 2 ** 40))
 def test_wallace(x, y):
@@ -34,7 +34,7 @@ def run_eval_mult(multiply, factor_1, factor_2):
     bin_factor_1 = utils.to_bin_list(factor_1)
     bin_factor_2 = utils.to_bin_list(factor_2)
 
-    strategy = strategies.BooleanStrategy()
+    strategy = tseitin_strategies.BooleanStrategy()
     bin_result = multiply(bin_factor_1, bin_factor_2, strategy)
 
     return utils.to_int(bin_result)
@@ -44,7 +44,7 @@ def run_tseitin_mult(multiply, factor_1, factor_2):
     bin_factor_1 = utils.to_bin_list(factor_1)
     bin_factor_2 = utils.to_bin_list(factor_2)
 
-    tseitin_strategy = strategies.TseitinStrategy()
+    tseitin_strategy = tseitin_strategies.TseitinStrategy()
     sym_mult = multiply_to_cnf(multiply, len(bin_factor_1), len(bin_factor_2), tseitin_strategy)
 
     assignment_1 = list(assign(sym_mult.factor_1, bin_factor_1))

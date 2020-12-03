@@ -1,19 +1,33 @@
 import random
 import sys
-from collections import namedtuple
 from dataclasses import dataclass
 from math import ceil
 from random import Random
-from typing import List, Set, Optional, Tuple, Callable
+from typing import List, Set, Optional, Tuple, Generic, TypeVar
 
 from gen_factor_sat import utils
-from gen_factor_sat.strategies import TseitinStrategy, CNFBuilder, TseitinCircuitStrategy
-from gen_factor_sat.circuit import GeneralNBitCircuitStrategy
-from gen_factor_sat.multiplication import KaratsubaMultiplication, WallaceTreeMultiplier
-from gen_factor_sat.tseitin import Clause, Variable, Symbol, is_no_tautology
+from gen_factor_sat.circuit import GeneralNBitCircuitStrategy, NBitCircuitStrategy
+from gen_factor_sat.multiplier import Multiplier, KaratsubaMultiplier, WallaceTreeMultiplier
+from gen_factor_sat.tseitin_encoding import Symbol, Clause, Variable, is_no_tautology, constant
+from gen_factor_sat.tseitin_strategies import TseitinStrategy, CNFBuilder, TseitinCircuitStrategy
 
-Multiplier = Callable[[List[Symbol], List[Symbol], TseitinStrategy], List[Symbol]]
-Multiplication = namedtuple('Multiplication', ['factor_1', 'factor_2', 'result'])
+# Multiplier = Callable[[List[Symbol], List[Symbol], TseitinStrategy], List[Symbol]]
+# Multiplication = namedtuple('Multiplication', ['factor_1', 'factor_2', 'result'])
+
+
+T = TypeVar('T')
+
+
+class FactoringCircuit(Generic[T]):
+    def __init__(self, n_bit_circuit: NBitCircuitStrategy[T],
+                 multiplier: Multiplier[T]):
+        self.n_bit_circuit = n_bit_circuit
+        self.multiplier = multiplier
+
+    def factorize(self, factor_1: List[T], factor_2: List[T], number: List[T]) -> T:
+        mult_result = self.multiplier.multiply(factor_1, factor_2)
+        fact_result = self.n_bit_circuit.n_bit_equality(mult_result, number)
+        return fact_result
 
 
 @dataclass
@@ -47,17 +61,6 @@ class FactoringSat:
         return cnf_to_dimacs(self.number_of_variables, self.clauses, comments=comments)
 
 
-class FactoringCircuit:
-    def __init__(self, n_bit_circuit, multiplier):
-        self.n_bit_circuit = n_bit_circuit
-        self.multiplier = multiplier
-
-    def factorize(self, factor_1, factor_2, number):
-        mult_result = self.multiplier.multiply(factor_1, factor_2)
-        fact_result = self.n_bit_circuit.n_bit_equality(mult_result, number)
-        return fact_result
-
-
 def factorize_random_number(max_value: int, seed: Optional[int]) -> FactoringSat:
     if seed is None:
         seed = random.randrange(sys.maxsize)
@@ -75,12 +78,11 @@ def factorize_number(number: int) -> FactoringSat:
     gate_strategy = TseitinStrategy(cnf_builder)
     simple_circuit = TseitinCircuitStrategy(cnf_builder=cnf_builder, gate_strategy=gate_strategy)
     n_bit_circuit = GeneralNBitCircuitStrategy(gate_strategy=gate_strategy, circuit_strategy=simple_circuit)
-
     wallace_mult = WallaceTreeMultiplier(gate_strategy=gate_strategy, simple_circuit=simple_circuit)
-    karatsuba = KaratsubaMultiplication(gate_strategy=gate_strategy, n_bit_circuit=n_bit_circuit,
-                                        simple_multiplication=wallace_mult)
-
-    fact = FactoringCircuit(n_bit_circuit=n_bit_circuit, multiplier=karatsuba)
+    karatsuba = KaratsubaMultiplier(gate_strategy=gate_strategy,
+                                    n_bit_circuit=n_bit_circuit,
+                                    simple_multiplier=wallace_mult)
+    factoring_circuit = FactoringCircuit[Symbol](n_bit_circuit=n_bit_circuit, multiplier=karatsuba)
 
     bin_number = utils.to_bin_list(number)
     factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
@@ -88,9 +90,9 @@ def factorize_number(number: int) -> FactoringSat:
     factor_1 = cnf_builder.next_variables(factor_length_1)
     factor_2 = cnf_builder.next_variables(factor_length_2)
 
-    fact_result = fact.factorize(factor_1, factor_2, bin_number)
+    fact_result = factoring_circuit.factorize(factor_1, factor_2, list(map(constant, bin_number)))
 
-    simple_circuit.assume(fact_result, gate_strategy.one())
+    simple_circuit.assume(fact_result, gate_strategy.one)
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added
@@ -115,18 +117,6 @@ def _factor_lengths(number_length: int) -> Tuple[int, int]:
     factor_length_2 = number_length - 1
 
     return factor_length_1, factor_length_2
-
-
-def multiply_to_cnf(
-        multiply: Multiplier,
-        factor_length_1: int,
-        factor_length_2: int,
-        tseitin_strategy: TseitinStrategy):
-    factor_1 = tseitin_strategy.next_variables(factor_length_1)
-    factor_2 = tseitin_strategy.next_variables(factor_length_2)
-
-    mult_result = multiply(factor_1, factor_2, tseitin_strategy)
-    return Multiplication(factor_1, factor_2, mult_result)
 
 
 def cnf_to_dimacs(num_variables: int, clauses: Set[Clause], comments=None) -> str:

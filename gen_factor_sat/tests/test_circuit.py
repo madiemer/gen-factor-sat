@@ -2,7 +2,7 @@ import pytest
 from hypothesis import given, assume
 from hypothesis.strategies import integers
 
-from gen_factor_sat import strategies, circuit
+from gen_factor_sat import tseitin_strategies, circuit
 from gen_factor_sat import utils
 
 
@@ -13,7 +13,7 @@ def test_n_bit_adder(x, y, c):
     bin_ys = utils.to_bin_list(y)
     # cs = bin(c)[2:]
 
-    strategy = strategies.EvalStrategy()
+    strategy = tseitin_strategies.EvalStrategy()
     bin_result = circuit.n_bit_adder(bin_xs, bin_ys, c, strategy)
 
     assert len(bin_result) == max(len(bin_xs), len(bin_ys)) + 1
@@ -26,7 +26,7 @@ def test_subtract(x, y):
     bin_xs = utils.to_bin_list(x)
     bin_ys = utils.to_bin_list(y)
 
-    strategy = strategies.EvalStrategy()
+    strategy = tseitin_strategies.EvalStrategy()
     bin_result = circuit.subtract(bin_xs, bin_ys, strategy)
 
     assert len(bin_result) == max(len(bin_xs), len(bin_ys))
@@ -38,7 +38,7 @@ def test_n_bit_equality(x, y):
     bin_xs = utils.to_bin_list(x)
     bin_ys = utils.to_bin_list(y)
 
-    strategy = strategies.EvalStrategy()
+    strategy = tseitin_strategies.EvalStrategy()
     bin_result = circuit.n_bit_equality(bin_xs, bin_ys, strategy)
 
     assert (bin_result == '1') == (x == y)
@@ -49,7 +49,7 @@ def test_align(xs, ys):
     bin_xs = utils.to_bin_list(xs)
     bin_ys = utils.to_bin_list(ys)
 
-    strategy = strategies.EvalStrategy()
+    strategy = tseitin_strategies.EvalStrategy()
     aligned_xs, aligned_ys = circuit.align(bin_xs, bin_ys, strategy)
 
     assert len(aligned_xs) == max(len(bin_xs), len(bin_ys))
@@ -63,7 +63,7 @@ def test_align(xs, ys):
 def test_shift(xs, shifts):
     bin_xs = utils.to_bin_list(xs)
 
-    strategy = strategies.EvalStrategy()
+    strategy = tseitin_strategies.EvalStrategy()
     shifted_xs = circuit.shift(bin_xs, shifts, strategy)
 
     assert len(shifted_xs) == len(bin_xs) + shifts

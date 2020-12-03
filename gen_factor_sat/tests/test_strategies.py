@@ -1,15 +1,15 @@
 import pytest
 
-from gen_factor_sat import strategies, tseitin
+from gen_factor_sat import tseitin_strategies, tseitin_encoding
 
 
 @pytest.fixture()
 def create_cnf_builder():
     def _create_cnf_builder(initial_variables=0):
         if initial_variables is 0:
-            cnf_builder = strategies.CNFBuilder()
+            cnf_builder = tseitin_strategies.CNFBuilder()
         else:
-            cnf_builder = strategies.CNFBuilder(initial_variables)
+            cnf_builder = tseitin_strategies.CNFBuilder(initial_variables)
 
         assert cnf_builder.number_of_variables == initial_variables
         return cnf_builder
@@ -24,7 +24,7 @@ def tseitin_strategy(create_cnf_builder):
 
 @pytest.fixture()
 def eval_strategy():
-    return strategies.EvalStrategy()
+    return tseitin_strategies.EvalStrategy()
 
 
 @pytest.mark.parametrize('initial_variables', [0, 1, 42])
@@ -61,8 +61,8 @@ def test_add_clauses(create_cnf_builder, initial_variables):
     assert result_or == initial_variables + 2
 
     expected_clauses = set()
-    expected_clauses.update(tseitin.and_equality(variable_1, variable_2, result_and))
-    expected_clauses.update(tseitin.or_equality(variable_1, variable_2, result_or))
+    expected_clauses.update(tseitin_encoding.and_equality(variable_1, variable_2, result_and))
+    expected_clauses.update(tseitin_encoding.or_equality(variable_1, variable_2, result_or))
 
     assert any(result_and in clause for clause in tseitin_strategy.clauses)
     assert any(result_or in clause for clause in tseitin_strategy.clauses)
