@@ -59,6 +59,23 @@ def xor_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[
     }
 
 
+def equal_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[Clause]:
+    """
+        Encode an Equality-Gate into a CNF.
+
+        :param input_1: variable representing the first input of the Equality-Gate
+        :param input_2: variable representing the second input of the Equality-Gate
+        :param output: variable representing the output of the Equality-Gate
+        :return: A set of clauses encoding the Equality-Gate
+        """
+    return {
+        frozenset([input_1, input_2, output]),
+        frozenset([input_1, -input_2, -output]),
+        frozenset([-input_1, input_2, -output]),
+        frozenset([-input_1, -input_2, output])
+    }
+
+
 def clause(literals: List[Variable]) -> Clause:
     return frozenset(literals)
 

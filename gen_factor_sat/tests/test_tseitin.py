@@ -50,9 +50,27 @@ def test_or_encoding():
     variables = [1, 2, 3]
 
     def or_equality(a, b, c):
-        return (a and b) == c
+        return (a or b) == c
 
-    check_assignments(variables, tseitin.and_equality(*variables), or_equality)
+    check_assignments(variables, tseitin.or_equality(*variables), or_equality)
+
+
+def test_xor_encoding():
+    variables = [1, 2, 3]
+
+    def xor_equality(a, b, c):
+        return (a ^ b) == c
+
+    check_assignments(variables, tseitin.xor_equality(*variables), xor_equality)
+
+
+def test_equal_encoding():
+    variables = [1, 2, 3]
+
+    def equal_equality(a, b, c):
+        return (a == b) == c
+
+    check_assignments(variables, tseitin.equal_equality(*variables), equal_equality)
 
 
 def check_assignments(variables, clauses, bool_expr):
