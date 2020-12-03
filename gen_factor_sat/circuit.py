@@ -1,18 +1,29 @@
 import functools
 import itertools
-from typing import List, Tuple
+from typing import List, Tuple, Generic, TypeVar
 
-from gen_factor_sat.strategies import T, Strategy
+T = TypeVar('T')
 
 
-class SimpleCircuit(Strategy[T]):
+class Circuit(Generic[T]):
+
+    def zero(self) -> T:
+        pass
+
+    def one(self) -> T:
+        pass
+
+    def wire_and(self, x: T, y: T) -> T:
+        pass
+
+    def wire_or(self, x: T, y: T) -> T:
+        pass
+
+    def wire_not(self, x: T) -> T:
+        pass
+
     def half_adder(self, input_1: T, input_2: T) -> Tuple[T, T]:
-        output_sum = self.wire_xor(input_1, input_2)
-        # output_sum = strategy.wire_or(
-        #     strategy.wire_and(input_1, strategy.wire_not(input_2)),
-        #     strategy.wire_and(strategy.wire_not(input_1), input_2)
-        # )
-
+        output_sum = self.xor(input_1, input_2)
         output_carry = self.wire_and(input_1, input_2)
 
         return output_sum, output_carry
@@ -34,25 +45,11 @@ class SimpleCircuit(Strategy[T]):
             )
         )
 
-
-class NBitCircuit(SimpleCircuit[T]):
-    # def n_bit_adder(xs: List[T], ys: List[T], c: T, strategy: Strategy[T]) -> List[T]:
-    #     aligned_xs, aligned_ys = align(xs, ys)
-    #
-    #     carry = c
-    #     result = []
-    #     for i in range(len(aligned_xs)):
-    #         x = aligned_xs[-(i+1)]
-    #         y = aligned_ys[-(i+1)]
-    #
-    #         sum_xy, carry_xy = full_adder(x, y, carry, strategy)
-    #
-    #         carry = carry_xy
-    #         result.append(sum_xy)
-    #
-    #     result.append(carry)
-    #     result.reverse()
-    #     return result
+    def xor(self, input_1: T, input_2: T) -> T:
+        return self.wire_or(
+            self.wire_and(input_1, self.wire_not(input_2)),
+            self.wire_and(self.wire_not(input_1), input_2)
+        )
 
     def n_bit_adder(self, inputs_1: List[T], inputs_2: List[T], carry: T) -> List[T]:
         if not inputs_1:
@@ -78,6 +75,24 @@ class NBitCircuit(SimpleCircuit[T]):
             init_sum = self.propagate(init, lsb_carry)
 
             return init_sum + [lsb_sum]
+
+    # def n_bit_adder(xs: List[T], ys: List[T], c: T, strategy: Strategy[T]) -> List[T]:
+    #     aligned_xs, aligned_ys = align(xs, ys)
+    #
+    #     carry = c
+    #     result = []
+    #     for i in range(len(aligned_xs)):
+    #         x = aligned_xs[-(i+1)]
+    #         y = aligned_ys[-(i+1)]
+    #
+    #         sum_xy, carry_xy = full_adder(x, y, carry, strategy)
+    #
+    #         carry = carry_xy
+    #         result.append(sum_xy)
+    #
+    #     result.append(carry)
+    #     result.reverse()
+    #     return result
 
     def subtract(self, inputs_1: List[T], inputs_2: List[T]) -> List[T]:
         aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2)

@@ -7,9 +7,8 @@ from random import Random
 from typing import List, Set, Optional, Tuple, Callable
 
 from gen_factor_sat import strategies, utils
-from gen_factor_sat.circuit import NBitCircuit
+from gen_factor_sat.circ_build import TseitinStrategy, CNFBuilder
 from gen_factor_sat.multiplication import KaratsubaMultiplication, WallaceTreeMultiplier
-from gen_factor_sat.strategies import TseitinStrategy, CNFBuilder
 from gen_factor_sat.tseitin import Clause, Variable, Symbol, is_no_tautology
 
 Multiplier = Callable[[List[Symbol], List[Symbol], TseitinStrategy], List[Symbol]]
@@ -63,21 +62,15 @@ def factorize_number(number: int) -> FactoringSat:
     bin_number = utils.to_bin_list(number)
     factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
 
-    class TseitinMultiplication(WallaceTreeMultiplier[Symbol], strategies.TseitinStrategy):
-        def __init__(self, cnf_builder):
-            super(TseitinMultiplication, self).__init__(cnf_builder=cnf_builder)
-
-    class TestMult(KaratsubaMultiplication[Symbol], strategies.TseitinStrategy):
-        def __init__(self, simple_mult, cnf_builder):
-            super(TestMult, self).__init__(simple_mult=simple_mult, cnf_builder=cnf_builder)
-
     cnf_builder = CNFBuilder()
-    circuit = TestMult(TseitinMultiplication(cnf_builder), cnf_builder) #type('TseitinCircuit', (NBitCircuit, strategies.TseitinStrategy), {})
+    circuit = TseitinStrategy(cnf_builder)
+    wallace_mult = WallaceTreeMultiplier(circuit)
+    karatsuba = KaratsubaMultiplication(circuit, wallace_mult)
 
     factor_1 = cnf_builder.next_variables(factor_length_1)
     factor_2 = cnf_builder.next_variables(factor_length_2)
 
-    mult_result = circuit.multiply(factor_1, factor_2)
+    mult_result = karatsuba.multiply(factor_1, factor_2)
 
     #sym_mult = multiply_to_cnf(karatsuba, factor_length_1, factor_length_2, circuit)
     fact_result = circuit.n_bit_equality(mult_result, bin_number)
