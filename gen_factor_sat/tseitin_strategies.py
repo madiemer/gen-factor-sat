@@ -29,37 +29,34 @@ class CNFBuilder:
         self.clauses.update(clauses)
 
 
-class TseitinGateStrategy(GateStrategy[Symbol]):
+class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
     zero: Constant = constant('0')
     one: Constant = constant('1')
 
-    def __init__(self, cnf_builder: CNFBuilder):
-        self.cnf_builder = cnf_builder
-
-    def assume(self, x: Symbol, value: Constant) -> Constant:
+    def assume(self, x: Symbol, value: Constant, writer: CNFBuilder) -> Constant:
         if self.is_constant(x) and x != value:
-            self.cnf_builder.append_clauses({tseitin_encoding.empty_clause()})
+            writer.append_clauses({tseitin_encoding.empty_clause()})
         elif not self.is_constant(x):
             if value == self.one:
-                self.cnf_builder.append_clauses({tseitin_encoding.unit_clause(x)})
+                writer.append_clauses({tseitin_encoding.unit_clause(x)})
             else:
-                self.cnf_builder.append_clauses({tseitin_encoding.unit_clause(variable(-x))})
+                writer.append_clauses({tseitin_encoding.unit_clause(variable(-x))})
 
         return value
 
-    def wire_and(self, x: Symbol, y: Symbol) -> Symbol:
+    def wire_and(self, x: Symbol, y: Symbol, writer: CNFBuilder) -> Symbol:
         if self.is_constant(x) or self.is_constant(y):
             return self._constant_and(x, y)
         else:
-            return self.cnf_builder.from_tseitin(tseitin_encoding.and_equality, x, y)
+            return writer.from_tseitin(tseitin_encoding.and_equality, x, y)
 
-    def wire_or(self, x: Symbol, y: Symbol) -> Symbol:
+    def wire_or(self, x: Symbol, y: Symbol, writer: CNFBuilder) -> Symbol:
         if self.is_constant(x) or self.is_constant(y):
             return self._constant_or(x, y)
         else:
-            return self.cnf_builder.from_tseitin(tseitin_encoding.or_equality, x, y)
+            return writer.from_tseitin(tseitin_encoding.or_equality, x, y)
 
-    def wire_not(self, x: Symbol) -> Symbol:
+    def wire_not(self, x: Symbol, writer: CNFBuilder) -> Symbol:
         if self.is_constant(x):
             return self._constant_not(x)
         else:
@@ -94,17 +91,16 @@ class TseitinGateStrategy(GateStrategy[Symbol]):
             raise ValueError('{0} is no constant'.format(x))
 
 
-class TseitinCircuitStrategy(GeneralSimpleCircuitStrategy[Symbol]):
+class TseitinCircuitStrategy(GeneralSimpleCircuitStrategy[Symbol, CNFBuilder]):
 
-    def __init__(self, cnf_builder: CNFBuilder, gate_strategy: GateStrategy[Symbol]):
-        super(TseitinCircuitStrategy, self).__init__(gate_strategy=gate_strategy)
-        self.cnf_builder = cnf_builder
+    def __init__(self, gate_strategy: GateStrategy[Symbol, CNFBuilder]):
+        super().__init__(gate_strategy)
 
-    def xor(self, x: Symbol, y: Symbol) -> Symbol:
+    def xor(self, x: Symbol, y: Symbol, writer: CNFBuilder) -> Symbol:
         if self.gate_strategy.is_constant(x) or self.gate_strategy.is_constant(y):
-            return self._constant_xor(x, y)
+            return self._constant_xor(x, y, writer)
         else:
-            return self.cnf_builder.from_tseitin(tseitin_encoding.xor_equality, x, y)
+            return writer.from_tseitin(tseitin_encoding.xor_equality, x, y)
 
     # def equality(self, x: Symbol, y: Symbol) -> Symbol:
     #     if _is_constant(x):
@@ -116,11 +112,11 @@ class TseitinCircuitStrategy(GeneralSimpleCircuitStrategy[Symbol]):
     #         self.gate_builder.cnf_builder.append_clauses(tseitin.equal_equality(x, y, z))
     #         return z
 
-    def _constant_xor(self, x, y):
+    def _constant_xor(self, x, y, writer: CNFBuilder):
         if x == self.gate_strategy.one:
-            return self.gate_strategy.wire_not(y)
+            return self.gate_strategy.wire_not(y, writer)
         elif y == self.gate_strategy.one:
-            return self.gate_strategy.wire_not(x)
+            return self.gate_strategy.wire_not(x, writer)
         elif x == self.gate_strategy.zero:
             return y
         elif y == self.gate_strategy.zero:

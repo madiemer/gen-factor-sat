@@ -4,13 +4,14 @@ import operator as op
 from abc import ABC, abstractmethod
 from typing import List
 from typing import Tuple, Generic, TypeVar
-from collections import namedtuple
+
 from gen_factor_sat.tseitin_encoding import Constant, constant
 
 T = TypeVar('T')
+W = TypeVar('W')
 
 
-class GateStrategy(Generic[T], ABC):
+class GateStrategy(Generic[T, W], ABC):
 
     @property
     @abstractmethod
@@ -23,32 +24,32 @@ class GateStrategy(Generic[T], ABC):
         pass
 
     @abstractmethod
-    def wire_and(self, x: T, y: T) -> T:
+    def wire_and(self, x: T, y: T, writer: W) -> T:
         pass
 
     @abstractmethod
-    def wire_or(self, x: T, y: T) -> T:
+    def wire_or(self, x: T, y: T, writer: W) -> T:
         pass
 
     @abstractmethod
-    def wire_not(self, x: T) -> T:
+    def wire_not(self, x: T, writer: W) -> T:
         pass
 
     def is_constant(self, x: T) -> bool:
         return (x == self.zero) or (x == self.one)
 
 
-class ConstantStrategy(GateStrategy[Constant]):
+class ConstantStrategy(GateStrategy[Constant, None]):
     zero: Constant = constant('0')
     one: Constant = constant('1')
 
-    def wire_and(self, x: Constant, y: Constant) -> Constant:
+    def wire_and(self, x: Constant, y: Constant, writer: None = None) -> Constant:
         return ConstantStrategy.__with_bool(op.and_, x, y)
 
-    def wire_or(self, x: Constant, y: Constant) -> Constant:
+    def wire_or(self, x: Constant, y: Constant, writer: None = None) -> Constant:
         return ConstantStrategy.__with_bool(op.or_, x, y)
 
-    def wire_not(self, x: Constant) -> Constant:
+    def wire_not(self, x: Constant, writer: None = None) -> Constant:
         return ConstantStrategy.__with_bool(op.not_, x)
 
     @staticmethod
@@ -64,111 +65,114 @@ class ConstantStrategy(GateStrategy[Constant]):
         return constant(bin(value)[2:])
 
 
-class SimpleCircuitStrategy(Generic[T], ABC):
+class SimpleCircuitStrategy(Generic[T, W], ABC):
 
     @abstractmethod
-    def half_adder(self, input_1: T, input_2: T) -> Tuple[T, T]:
+    def half_adder(self, input_1: T, input_2: T, writer: W) -> Tuple[T, T]:
         pass
 
     @abstractmethod
-    def full_adder(self, input_1: T, input_2: T, carry: T) -> Tuple[T, T]:
+    def full_adder(self, input_1: T, input_2: T, carry: T, writer: W) -> Tuple[T, T]:
         pass
 
     @abstractmethod
-    def equality(self, input_1: T, input_2: T) -> T:
+    def equality(self, input_1: T, input_2: T, writer: W) -> T:
         pass
 
     @abstractmethod
-    def xor(self, input_1: T, input_2: T) -> T:
+    def xor(self, input_1: T, input_2: T, writer: W) -> T:
         pass
 
 
-class GeneralSimpleCircuitStrategy(SimpleCircuitStrategy[T]):
+class GeneralSimpleCircuitStrategy(SimpleCircuitStrategy[T, W]):
 
-    def __init__(self, gate_strategy: GateStrategy[T]):
+    def __init__(self, gate_strategy: GateStrategy[T, W]):
         self.gate_strategy = gate_strategy
 
-    def half_adder(self, input_1: T, input_2: T) -> Tuple[T, T]:
-        output_sum = self.xor(input_1, input_2)
-        output_carry = self.gate_strategy.wire_and(input_1, input_2)
+    def half_adder(self, input_1: T, input_2: T, writer: W) -> Tuple[T, T]:
+        output_sum = self.xor(input_1, input_2, writer)
+        output_carry = self.gate_strategy.wire_and(input_1, input_2, writer)
 
         return output_sum, output_carry
 
-    def full_adder(self, input_1: T, input_2: T, carry: T) -> Tuple[T, T]:
-        partial_sum, carry_1 = self.half_adder(input_1, input_2)
-        output_sum, carry_2 = self.half_adder(partial_sum, carry)
+    def full_adder(self, input_1: T, input_2: T, carry: T, writer: W) -> Tuple[T, T]:
+        partial_sum, carry_1 = self.half_adder(input_1, input_2, writer)
+        output_sum, carry_2 = self.half_adder(partial_sum, carry, writer)
 
-        output_carry = self.gate_strategy.wire_or(carry_1, carry_2)
+        output_carry = self.gate_strategy.wire_or(carry_1, carry_2, writer)
 
         return output_sum, output_carry
 
-    def equality(self, input_1: T, input_2: T) -> T:
+    def equality(self, input_1: T, input_2: T, writer: W) -> T:
         return self.gate_strategy.wire_or(
-            self.gate_strategy.wire_and(input_1, input_2),
+            self.gate_strategy.wire_and(input_1, input_2, writer),
             self.gate_strategy.wire_and(
-                self.gate_strategy.wire_not(input_1),
-                self.gate_strategy.wire_not(input_2)
-            )
+                self.gate_strategy.wire_not(input_1, writer),
+                self.gate_strategy.wire_not(input_2, writer),
+                writer
+            ),
+            writer
         )
 
-    def xor(self, input_1: T, input_2: T) -> T:
+    def xor(self, input_1: T, input_2: T, writer: W) -> T:
         return self.gate_strategy.wire_or(
-            self.gate_strategy.wire_and(input_1, self.gate_strategy.wire_not(input_2)),
-            self.gate_strategy.wire_and(self.gate_strategy.wire_not(input_1), input_2)
+            self.gate_strategy.wire_and(input_1, self.gate_strategy.wire_not(input_2, writer), writer),
+            self.gate_strategy.wire_and(self.gate_strategy.wire_not(input_1, writer), input_2, writer),
+            writer
         )
 
 
-class NBitCircuitStrategy(Generic[T], ABC):
+class NBitCircuitStrategy(Generic[T, W], ABC):
 
     @abstractmethod
-    def n_bit_adder(self, inputs_1: List[T], inputs_2: List[T], carry: T) -> List[T]:
+    def n_bit_adder(self, inputs_1: List[T], inputs_2: List[T], carry: T, writer: W) -> List[T]:
         pass
 
     @abstractmethod
-    def subtract(self, inputs_1: List[T], inputs_2: List[T]) -> List[T]:
+    def subtract(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> List[T]:
         pass
 
     @abstractmethod
-    def n_bit_equality(self, inputs_1: List[T], inputs_2: List[T]) -> T:
+    def n_bit_equality(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> T:
         pass
 
     @abstractmethod
-    def shift(self, inputs_1: List[T], shifts: int) -> List[T]:
+    def shift(self, inputs_1: List[T], shifts: int, writer: W) -> List[T]:
         pass
 
     @abstractmethod
-    def align(self, inputs_1: List[T], inputs_2: List[T]) -> Tuple[List[T], List[T]]:
+    def align(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> Tuple[List[T], List[T]]:
         pass
 
 
-class GeneralNBitCircuitStrategy(NBitCircuitStrategy[T]):
+class GeneralNBitCircuitStrategy(NBitCircuitStrategy[T, W]):
 
-    def __init__(self, gate_strategy: GateStrategy[T], circuit_strategy: GeneralSimpleCircuitStrategy[T]):
+    def __init__(self, gate_strategy: GateStrategy[T, W], circuit_strategy: GeneralSimpleCircuitStrategy[T, W]):
         self.gate_strategy = gate_strategy
         self.circuit_strategy = circuit_strategy
 
-    def n_bit_adder(self, inputs_1: List[T], inputs_2: List[T], carry: T) -> List[T]:
+    def n_bit_adder(self, inputs_1: List[T], inputs_2: List[T], carry: T, writer: W) -> List[T]:
         if not inputs_1:
-            return self.propagate(inputs_2, carry)
+            return self.propagate(inputs_2, carry, writer)
         elif not inputs_2:
-            return self.propagate(inputs_1, carry)
+            return self.propagate(inputs_1, carry, writer)
         else:
             *init_1, lsb_1 = inputs_1
             *init_2, lsb_2 = inputs_2
 
-            lsb_sum, lsb_carry = self.circuit_strategy.full_adder(lsb_1, lsb_2, carry)
-            init_sum = self.n_bit_adder(init_1, init_2, lsb_carry)
+            lsb_sum, lsb_carry = self.circuit_strategy.full_adder(lsb_1, lsb_2, carry, writer)
+            init_sum = self.n_bit_adder(init_1, init_2, lsb_carry, writer)
 
             return init_sum + [lsb_sum]
 
-    def propagate(self, inputs: List[T], carry: T) -> List[T]:
+    def propagate(self, inputs: List[T], carry: T, writer: W) -> List[T]:
         if not inputs:
             return [carry]
         else:
             *init, lsb = inputs
 
-            lsb_sum, lsb_carry = self.circuit_strategy.half_adder(lsb, carry)
-            init_sum = self.propagate(init, lsb_carry)
+            lsb_sum, lsb_carry = self.circuit_strategy.half_adder(lsb, carry, writer)
+            init_sum = self.propagate(init, lsb_carry, writer)
 
             return init_sum + [lsb_sum]
 
@@ -190,26 +194,26 @@ class GeneralNBitCircuitStrategy(NBitCircuitStrategy[T]):
     #     result.reverse()
     #     return result
 
-    def subtract(self, inputs_1: List[T], inputs_2: List[T]) -> List[T]:
-        aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2)
+    def subtract(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> List[T]:
+        aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2, writer)
 
-        complement = list(map(self.gate_strategy.wire_not, aligned_inputs_2))
-        output_sum = self.n_bit_adder(aligned_inputs_1, complement, self.gate_strategy.one)
+        complement = list(map(functools.partial(self.gate_strategy.wire_not, writer=writer), aligned_inputs_2))
+        output_sum = self.n_bit_adder(aligned_inputs_1, complement, self.gate_strategy.one, writer)
 
         return output_sum[1:]  # Carry is not needed
 
-    def n_bit_equality(self, inputs_1: List[T], inputs_2: List[T]) -> T:
-        aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2)
+    def n_bit_equality(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> T:
+        aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2, writer)
 
-        pairwise_equal = itertools.starmap(self.circuit_strategy.equality, zip(aligned_inputs_1, aligned_inputs_2))
-        all_equal = functools.reduce(self.gate_strategy.wire_and, pairwise_equal)
+        pairwise_equal = itertools.starmap(functools.partial(self.circuit_strategy.equality, writer=writer), zip(aligned_inputs_1, aligned_inputs_2))
+        all_equal = functools.reduce(functools.partial(self.gate_strategy.wire_and, writer=writer), pairwise_equal)
 
         return all_equal
 
-    def shift(self, inputs_1: List[T], shifts: int) -> List[T]:
+    def shift(self, inputs_1: List[T], shifts: int, writer: W) -> List[T]:
         return inputs_1 + [self.gate_strategy.zero] * shifts
 
-    def align(self, inputs_1: List[T], inputs_2: List[T]) -> Tuple[List[T], List[T]]:
+    def align(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> Tuple[List[T], List[T]]:
         aligned_inputs_1 = ([self.gate_strategy.zero] * (len(inputs_2) - len(inputs_1))) + inputs_1
         aligned_inputs_2 = ([self.gate_strategy.zero] * (len(inputs_1) - len(inputs_2))) + inputs_2
 

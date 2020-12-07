@@ -16,17 +16,18 @@ from gen_factor_sat.tseitin_strategies import TseitinGateStrategy, CNFBuilder, T
 
 
 T = TypeVar('T')
+W = TypeVar('W')
 
 
-class FactoringCircuit(Generic[T]):
-    def __init__(self, n_bit_circuit: NBitCircuitStrategy[T],
-                 multiplier: Multiplier[T]):
+class FactoringCircuit(Generic[T, W]):
+    def __init__(self, n_bit_circuit: NBitCircuitStrategy[T, W],
+                 multiplier: Multiplier[T, W]):
         self.n_bit_circuit = n_bit_circuit
         self.multiplier = multiplier
 
-    def factorize(self, factor_1: List[T], factor_2: List[T], number: List[T]) -> T:
-        mult_result = self.multiplier.multiply(factor_1, factor_2)
-        fact_result = self.n_bit_circuit.n_bit_equality(mult_result, number)
+    def factorize(self, factor_1: List[T], factor_2: List[T], number: List[T], writer: W) -> T:
+        mult_result = self.multiplier.multiply(factor_1, factor_2, writer)
+        fact_result = self.n_bit_circuit.n_bit_equality(mult_result, number, writer)
         return fact_result
 
 
@@ -75,7 +76,7 @@ def factorize_random_number(max_value: int, seed: Optional[int]) -> FactoringSat
 
 def factorize_number(number: int) -> FactoringSat:
     cnf_builder = CNFBuilder()
-    factoring_circuit = create_default_tseitin_circuit(cnf_builder)
+    factoring_circuit = create_default_tseitin_circuit()
 
     bin_number = utils.to_bin_list(number)
     factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
@@ -83,10 +84,10 @@ def factorize_number(number: int) -> FactoringSat:
     factor_1 = cnf_builder.next_variables(factor_length_1)
     factor_2 = cnf_builder.next_variables(factor_length_2)
 
-    fact_result = factoring_circuit.factorize(factor_1, factor_2, bin_number)
+    fact_result = factoring_circuit.factorize(factor_1, factor_2, bin_number, cnf_builder)
 
-    gate_strategy = TseitinGateStrategy(cnf_builder)
-    gate_strategy.assume(fact_result, gate_strategy.one)
+    gate_strategy = TseitinGateStrategy()
+    gate_strategy.assume(fact_result, gate_strategy.one, cnf_builder)
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added
@@ -101,11 +102,10 @@ def factorize_number(number: int) -> FactoringSat:
     )
 
 
-def create_default_tseitin_circuit(cnf_builder: CNFBuilder) -> FactoringCircuit[Symbol]:
-    gate_strategy = TseitinGateStrategy(cnf_builder)
+def create_default_tseitin_circuit() -> FactoringCircuit[Symbol, CNFBuilder]:
+    gate_strategy = TseitinGateStrategy()
 
     simple_circuit = TseitinCircuitStrategy(
-        cnf_builder=cnf_builder,
         gate_strategy=gate_strategy
     )
 
@@ -125,7 +125,7 @@ def create_default_tseitin_circuit(cnf_builder: CNFBuilder) -> FactoringCircuit[
         simple_multiplier=wallace_mult
     )
 
-    factoring_circuit = FactoringCircuit[Symbol](
+    factoring_circuit = FactoringCircuit[Symbol, CNFBuilder](
         n_bit_circuit=n_bit_circuit,
         multiplier=karatsuba
     )
