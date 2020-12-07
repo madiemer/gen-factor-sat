@@ -1,15 +1,16 @@
 import pytest
 
-from gen_factor_sat import tseitin_strategies, tseitin_encoding
+from gen_factor_sat.tseitin_encoding import variable, constant, and_equality, or_equality
+from gen_factor_sat.tseitin_strategies import CNFBuilder, TseitinGateStrategy
 
 
 @pytest.fixture()
 def create_cnf_builder():
     def _create_cnf_builder(initial_variables=0):
         if initial_variables is 0:
-            cnf_builder = tseitin_strategies.CNFBuilder()
+            cnf_builder = CNFBuilder()
         else:
-            cnf_builder = tseitin_strategies.CNFBuilder(initial_variables)
+            cnf_builder = CNFBuilder(initial_variables)
 
         assert cnf_builder.number_of_variables == initial_variables
         return cnf_builder
@@ -19,12 +20,12 @@ def create_cnf_builder():
 
 @pytest.fixture()
 def tseitin_strategy(create_cnf_builder):
-    return create_cnf_builder()
+    return TseitinGateStrategy(create_cnf_builder())
 
 
 @pytest.fixture()
 def eval_strategy():
-    return tseitin_strategies.EvalStrategy()
+    return EvalStrategy()
 
 
 @pytest.mark.parametrize('initial_variables', [0, 1, 42])
@@ -47,53 +48,58 @@ def test_next_variables(create_cnf_builder, initial_variables):
 
 @pytest.mark.parametrize('initial_variables', [0, 1, 42])
 def test_add_clauses(create_cnf_builder, initial_variables):
-    variable_1 = 1
-    variable_2 = -2
+    variable_1 = variable(1)
+    variable_2 = variable(-2)
 
-    tseitin_strategy = create_cnf_builder(initial_variables)
+    cnf_builder = create_cnf_builder(initial_variables)
+    tseitin_strategy = TseitinGateStrategy(cnf_builder)
 
     result_and = tseitin_strategy.wire_and(variable_1, variable_2)
-    assert tseitin_strategy.number_of_variables == initial_variables + 1
+    assert cnf_builder.number_of_variables == initial_variables + 1
     assert result_and == initial_variables + 1
 
     result_or = tseitin_strategy.wire_or(variable_1, variable_2)
-    assert tseitin_strategy.number_of_variables == initial_variables + 2
+    assert cnf_builder.number_of_variables == initial_variables + 2
     assert result_or == initial_variables + 2
 
     expected_clauses = set()
-    expected_clauses.update(tseitin_encoding.and_equality(variable_1, variable_2, result_and))
-    expected_clauses.update(tseitin_encoding.or_equality(variable_1, variable_2, result_or))
+    expected_clauses.update(and_equality(variable_1, variable_2, result_and))
+    expected_clauses.update(or_equality(variable_1, variable_2, result_or))
 
-    assert any(result_and in clause for clause in tseitin_strategy.clauses)
-    assert any(result_or in clause for clause in tseitin_strategy.clauses)
-    assert tseitin_strategy.clauses == expected_clauses
+    assert any(result_and in clause for clause in cnf_builder.clauses)
+    assert any(result_or in clause for clause in cnf_builder.clauses)
+    assert cnf_builder.clauses == expected_clauses
 
 
-@pytest.mark.parametrize('constant', ['0', '1'])
-def test_constant_propagation(tseitin_strategy, constant):
-    variable = 1
+@pytest.mark.parametrize('constant_value', ['0', '1'])
+def test_constant_propagation(create_cnf_builder, constant_value):
+    var = variable(1)
+    const = constant(constant_value)
 
-    result_1 = tseitin_strategy.wire_and(variable, constant)
-    result_2 = tseitin_strategy.wire_and(constant, variable)
-    assert tseitin_strategy.number_of_variables == 0
-    assert not tseitin_strategy.clauses
+    cnf_builder = create_cnf_builder()
+    tseitin_strategy = TseitinGateStrategy(cnf_builder)
 
-    assert result_1 == result_2
-    if constant == '1':
-        assert result_1 == variable
-    else:
-        assert result_1 == constant
-
-    result_1 = tseitin_strategy.wire_or(variable, constant)
-    result_2 = tseitin_strategy.wire_or(constant, variable)
-    assert tseitin_strategy.number_of_variables == 0
-    assert not tseitin_strategy.clauses
+    result_1 = tseitin_strategy.wire_and(var, const)
+    result_2 = tseitin_strategy.wire_and(const, var)
+    assert cnf_builder.number_of_variables == 0
+    assert not cnf_builder.clauses
 
     assert result_1 == result_2
-    if constant == '1':
-        assert result_1 == constant
+    if const == '1':
+        assert result_1 == var
     else:
-        assert result_1 == variable
+        assert result_1 == const
+
+    result_1 = tseitin_strategy.wire_or(var, const)
+    result_2 = tseitin_strategy.wire_or(const, var)
+    assert cnf_builder.number_of_variables == 0
+    assert not cnf_builder.clauses
+
+    assert result_1 == result_2
+    if const == '1':
+        assert result_1 == const
+    else:
+        assert result_1 == var
 
 # def test_equals_eval_strategy(tseitin_strategy, eval_strategy):
 #     formula = CNF(from_clauses=tseitin_strategy.clauses)

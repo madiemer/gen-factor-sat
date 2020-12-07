@@ -1,7 +1,7 @@
 from typing import List, TypeVar
 
 from gen_factor_sat import tseitin_encoding
-from gen_factor_sat.circuit import GateStrategy, GeneralCircuitStrategy
+from gen_factor_sat.circuit import GateStrategy, GeneralSimpleCircuitStrategy
 from gen_factor_sat.tseitin_encoding import Symbol, Constant, Variable, constant, variable
 
 T = TypeVar('T')
@@ -13,10 +13,10 @@ class CNFBuilder:
         self.clauses = set()
 
     def from_tseitin(self, tseitin_transformation, *args):
-        z = self.next_variable()
-        clauses = tseitin_transformation(*args, z)
+        output = self.next_variable()
+        clauses = tseitin_transformation(*args, output)
         self.append_clauses(clauses)
-        return z
+        return output
 
     def next_variables(self, amount) -> List[Variable]:
         return [self.next_variable() for _ in range(amount)]
@@ -29,12 +29,23 @@ class CNFBuilder:
         self.clauses.update(clauses)
 
 
-class TseitinStrategy(GateStrategy[Symbol]):
+class TseitinGateStrategy(GateStrategy[Symbol]):
     zero: Constant = constant('0')
     one: Constant = constant('1')
 
     def __init__(self, cnf_builder: CNFBuilder):
         self.cnf_builder = cnf_builder
+
+    def assume(self, x: Symbol, value: Constant) -> Constant:
+        if self.is_constant(x) and x != value:
+            self.cnf_builder.append_clauses({tseitin_encoding.empty_clause()})
+        elif not self.is_constant(x):
+            if value == self.one:
+                self.cnf_builder.append_clauses({tseitin_encoding.unit_clause(x)})
+            else:
+                self.cnf_builder.append_clauses({tseitin_encoding.unit_clause(variable(-x))})
+
+        return value
 
     def wire_and(self, x: Symbol, y: Symbol) -> Symbol:
         if self.is_constant(x) or self.is_constant(y):
@@ -83,7 +94,7 @@ class TseitinStrategy(GateStrategy[Symbol]):
             raise ValueError('{0} is no constant'.format(x))
 
 
-class TseitinCircuitStrategy(GeneralCircuitStrategy[Symbol]):
+class TseitinCircuitStrategy(GeneralSimpleCircuitStrategy[Symbol]):
 
     def __init__(self, cnf_builder: CNFBuilder, gate_strategy: GateStrategy[Symbol]):
         super(TseitinCircuitStrategy, self).__init__(gate_strategy=gate_strategy)
@@ -105,17 +116,6 @@ class TseitinCircuitStrategy(GeneralCircuitStrategy[Symbol]):
     #         self.gate_builder.cnf_builder.append_clauses(tseitin.equal_equality(x, y, z))
     #         return z
 
-    def assume(self, x: Symbol, value: Constant) -> Constant:
-        if self.gate_strategy.is_constant(x) and x != value:
-            self.cnf_builder.append_clauses({tseitin_encoding.empty_clause()})
-        elif not self.gate_strategy.is_constant(x):
-            if value == self.gate_strategy.one:
-                self.cnf_builder.append_clauses({tseitin_encoding.unit_clause(x)})
-            else:
-                self.cnf_builder.append_clauses({tseitin_encoding.unit_clause(variable(-x))})
-
-        return value
-
     def _constant_xor(self, x, y):
         if x == self.gate_strategy.one:
             return self.gate_strategy.wire_not(y)
@@ -127,4 +127,3 @@ class TseitinCircuitStrategy(GeneralCircuitStrategy[Symbol]):
             return x
         else:
             raise ValueError('Neither {0} nor {1} is a constant'.format(x, y))
-

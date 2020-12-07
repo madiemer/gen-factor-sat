@@ -4,7 +4,7 @@ import operator as op
 from abc import ABC, abstractmethod
 from typing import List
 from typing import Tuple, Generic, TypeVar
-
+from collections import namedtuple
 from gen_factor_sat.tseitin_encoding import Constant, constant
 
 T = TypeVar('T')
@@ -64,7 +64,7 @@ class ConstantStrategy(GateStrategy[Constant]):
         return constant(bin(value)[2:])
 
 
-class CircuitStrategy(Generic[T], ABC):
+class SimpleCircuitStrategy(Generic[T], ABC):
 
     @abstractmethod
     def half_adder(self, input_1: T, input_2: T) -> Tuple[T, T]:
@@ -83,7 +83,7 @@ class CircuitStrategy(Generic[T], ABC):
         pass
 
 
-class GeneralCircuitStrategy(CircuitStrategy[T]):
+class GeneralSimpleCircuitStrategy(SimpleCircuitStrategy[T]):
 
     def __init__(self, gate_strategy: GateStrategy[T]):
         self.gate_strategy = gate_strategy
@@ -143,7 +143,7 @@ class NBitCircuitStrategy(Generic[T], ABC):
 
 class GeneralNBitCircuitStrategy(NBitCircuitStrategy[T]):
 
-    def __init__(self, gate_strategy: GateStrategy[T], circuit_strategy: GeneralCircuitStrategy[T]):
+    def __init__(self, gate_strategy: GateStrategy[T], circuit_strategy: GeneralSimpleCircuitStrategy[T]):
         self.gate_strategy = gate_strategy
         self.circuit_strategy = circuit_strategy
 

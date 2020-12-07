@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, Generic, TypeVar
 
 from gen_factor_sat import utils
-from gen_factor_sat.circuit import GateStrategy, CircuitStrategy, NBitCircuitStrategy
+from gen_factor_sat.circuit import GateStrategy, SimpleCircuitStrategy, NBitCircuitStrategy
 
 T = TypeVar('T')
 
@@ -61,7 +61,7 @@ class KaratsubaMultiplier(Multiplier):
 
 class WallaceTreeMultiplier(Multiplier):
 
-    def __init__(self, gate_strategy: GateStrategy[T], simple_circuit: CircuitStrategy[T]):
+    def __init__(self, gate_strategy: GateStrategy[T], simple_circuit: SimpleCircuitStrategy[T]):
         self.gate_strategy = gate_strategy
         self.simple_circuit = simple_circuit
 

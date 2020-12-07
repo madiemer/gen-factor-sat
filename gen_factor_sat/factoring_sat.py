@@ -8,8 +8,8 @@ from typing import List, Set, Optional, Tuple, Generic, TypeVar
 from gen_factor_sat import utils
 from gen_factor_sat.circuit import GeneralNBitCircuitStrategy, NBitCircuitStrategy
 from gen_factor_sat.multiplier import Multiplier, KaratsubaMultiplier, WallaceTreeMultiplier
-from gen_factor_sat.tseitin_encoding import Symbol, Clause, Variable, is_no_tautology, constant
-from gen_factor_sat.tseitin_strategies import TseitinStrategy, CNFBuilder, TseitinCircuitStrategy
+from gen_factor_sat.tseitin_encoding import Symbol, Clause, Variable, is_no_tautology
+from gen_factor_sat.tseitin_strategies import TseitinGateStrategy, CNFBuilder, TseitinCircuitStrategy
 
 # Multiplier = Callable[[List[Symbol], List[Symbol], TseitinStrategy], List[Symbol]]
 # Multiplication = namedtuple('Multiplication', ['factor_1', 'factor_2', 'result'])
@@ -75,14 +75,7 @@ def factorize_random_number(max_value: int, seed: Optional[int]) -> FactoringSat
 
 def factorize_number(number: int) -> FactoringSat:
     cnf_builder = CNFBuilder()
-    gate_strategy = TseitinStrategy(cnf_builder)
-    simple_circuit = TseitinCircuitStrategy(cnf_builder=cnf_builder, gate_strategy=gate_strategy)
-    n_bit_circuit = GeneralNBitCircuitStrategy(gate_strategy=gate_strategy, circuit_strategy=simple_circuit)
-    wallace_mult = WallaceTreeMultiplier(gate_strategy=gate_strategy, simple_circuit=simple_circuit)
-    karatsuba = KaratsubaMultiplier(gate_strategy=gate_strategy,
-                                    n_bit_circuit=n_bit_circuit,
-                                    simple_multiplier=wallace_mult)
-    factoring_circuit = FactoringCircuit[Symbol](n_bit_circuit=n_bit_circuit, multiplier=karatsuba)
+    factoring_circuit = create_default_tseitin_circuit(cnf_builder)
 
     bin_number = utils.to_bin_list(number)
     factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
@@ -92,7 +85,8 @@ def factorize_number(number: int) -> FactoringSat:
 
     fact_result = factoring_circuit.factorize(factor_1, factor_2, bin_number)
 
-    simple_circuit.assume(fact_result, gate_strategy.one)
+    gate_strategy = TseitinGateStrategy(cnf_builder)
+    gate_strategy.assume(fact_result, gate_strategy.one)
 
     # For performance reasons it is better to check all clauses at
     # once instead of checking the clauses whenever they are added
@@ -105,6 +99,38 @@ def factorize_number(number: int) -> FactoringSat:
         number_of_variables=cnf_builder.number_of_variables,
         clauses=clauses
     )
+
+
+def create_default_tseitin_circuit(cnf_builder: CNFBuilder) -> FactoringCircuit[Symbol]:
+    gate_strategy = TseitinGateStrategy(cnf_builder)
+
+    simple_circuit = TseitinCircuitStrategy(
+        cnf_builder=cnf_builder,
+        gate_strategy=gate_strategy
+    )
+
+    n_bit_circuit = GeneralNBitCircuitStrategy(
+        gate_strategy=gate_strategy,
+        circuit_strategy=simple_circuit
+    )
+
+    wallace_mult = WallaceTreeMultiplier(
+        gate_strategy=gate_strategy,
+        simple_circuit=simple_circuit
+    )
+
+    karatsuba = KaratsubaMultiplier(
+        gate_strategy=gate_strategy,
+        n_bit_circuit=n_bit_circuit,
+        simple_multiplier=wallace_mult
+    )
+
+    factoring_circuit = FactoringCircuit[Symbol](
+        n_bit_circuit=n_bit_circuit,
+        multiplier=karatsuba
+    )
+
+    return factoring_circuit
 
 
 def _generate_number(max_value, seed: int) -> int:
