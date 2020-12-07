@@ -90,7 +90,7 @@ def factorize_number(number: int) -> FactoringSat:
     factor_1 = cnf_builder.next_variables(factor_length_1)
     factor_2 = cnf_builder.next_variables(factor_length_2)
 
-    fact_result = factoring_circuit.factorize(factor_1, factor_2, list(map(constant, bin_number)))
+    fact_result = factoring_circuit.factorize(factor_1, factor_2, bin_number)
 
     simple_circuit.assume(fact_result, gate_strategy.one)
 

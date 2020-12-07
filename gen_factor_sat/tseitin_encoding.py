@@ -4,7 +4,7 @@ Constant = NewType('Constant', str)
 Variable = NewType('Variable', int)
 Symbol = Union[Constant, Variable]
 
-Clause = FrozenSet[Variable]
+Clause = FrozenSet[int]
 
 
 def constant(x: str) -> Constant:

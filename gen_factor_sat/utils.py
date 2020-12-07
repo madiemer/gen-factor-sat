@@ -1,12 +1,14 @@
 from collections import defaultdict
 from typing import Iterable, List, Tuple, DefaultDict, TypeVar
 
-
-def to_bin_list(value):
-    return list(to_bin_string(value))
+from gen_factor_sat.tseitin_encoding import Constant, constant
 
 
-def to_bin_string(value):
+def to_bin_list(value) -> List[Constant]:
+    return list(map(constant, to_bin_string(value)))
+
+
+def to_bin_string(value) -> str:
     return bin(value)[2:]
 
 

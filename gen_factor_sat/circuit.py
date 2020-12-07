@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from typing import List
 from typing import Tuple, Generic, TypeVar
 
+from gen_factor_sat.tseitin_encoding import Constant, constant
+
 T = TypeVar('T')
 
 
@@ -36,30 +38,30 @@ class GateStrategy(Generic[T], ABC):
         return (x == self.zero) or (x == self.one)
 
 
-class BooleanStrategy(GateStrategy[str]):
-    zero: str = '0'
-    one: str = '1'
+class ConstantStrategy(GateStrategy[Constant]):
+    zero: Constant = constant('0')
+    one: Constant = constant('1')
 
-    def wire_and(self, x: str, y: str) -> str:
-        return BooleanStrategy.__with_bool(op.and_, x, y)
+    def wire_and(self, x: Constant, y: Constant) -> Constant:
+        return ConstantStrategy.__with_bool(op.and_, x, y)
 
-    def wire_or(self, x: str, y: str) -> str:
-        return BooleanStrategy.__with_bool(op.or_, x, y)
+    def wire_or(self, x: Constant, y: Constant) -> Constant:
+        return ConstantStrategy.__with_bool(op.or_, x, y)
 
-    def wire_not(self, x: str) -> str:
-        return BooleanStrategy.__with_bool(op.not_, x)
+    def wire_not(self, x: Constant) -> Constant:
+        return ConstantStrategy.__with_bool(op.not_, x)
 
     @staticmethod
     def __with_bool(func, *args):
-        return BooleanStrategy.__to_bin(func(*iter(map(BooleanStrategy.__to_bool, args))))
+        return ConstantStrategy.__to_bin(func(*iter(map(ConstantStrategy.__to_bool, args))))
 
     @staticmethod
-    def __to_bool(value: str) -> bool:
+    def __to_bool(value: Constant) -> bool:
         return value == '1'
 
     @staticmethod
-    def __to_bin(value: bool) -> str:
-        return bin(value)[2:]
+    def __to_bin(value: bool) -> Constant:
+        return constant(bin(value)[2:])
 
 
 class CircuitStrategy(Generic[T], ABC):
