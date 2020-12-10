@@ -18,16 +18,6 @@ def create_cnf_builder():
     return _create_cnf_builder
 
 
-@pytest.fixture()
-def tseitin_strategy(create_cnf_builder):
-    return TseitinGateStrategy(create_cnf_builder())
-
-
-@pytest.fixture()
-def eval_strategy():
-    return EvalStrategy()
-
-
 @pytest.mark.parametrize('initial_variables', [0, 1, 42])
 def test_next_variables(create_cnf_builder, initial_variables):
     cnf_builder = create_cnf_builder(initial_variables)
@@ -52,13 +42,13 @@ def test_add_clauses(create_cnf_builder, initial_variables):
     variable_2 = variable(-2)
 
     cnf_builder = create_cnf_builder(initial_variables)
-    tseitin_strategy = TseitinGateStrategy(cnf_builder)
+    tseitin_strategy = TseitinGateStrategy()
 
-    result_and = tseitin_strategy.wire_and(variable_1, variable_2)
+    result_and = tseitin_strategy.wire_and(variable_1, variable_2, cnf_builder)
     assert cnf_builder.number_of_variables == initial_variables + 1
     assert result_and == initial_variables + 1
 
-    result_or = tseitin_strategy.wire_or(variable_1, variable_2)
+    result_or = tseitin_strategy.wire_or(variable_1, variable_2, cnf_builder)
     assert cnf_builder.number_of_variables == initial_variables + 2
     assert result_or == initial_variables + 2
 
@@ -77,10 +67,10 @@ def test_constant_propagation(create_cnf_builder, constant_value):
     const = constant(constant_value)
 
     cnf_builder = create_cnf_builder()
-    tseitin_strategy = TseitinGateStrategy(cnf_builder)
+    tseitin_strategy = TseitinGateStrategy()
 
-    result_1 = tseitin_strategy.wire_and(var, const)
-    result_2 = tseitin_strategy.wire_and(const, var)
+    result_1 = tseitin_strategy.wire_and(var, const, cnf_builder)
+    result_2 = tseitin_strategy.wire_and(const, var, cnf_builder)
     assert cnf_builder.number_of_variables == 0
     assert not cnf_builder.clauses
 
@@ -90,8 +80,8 @@ def test_constant_propagation(create_cnf_builder, constant_value):
     else:
         assert result_1 == const
 
-    result_1 = tseitin_strategy.wire_or(var, const)
-    result_2 = tseitin_strategy.wire_or(const, var)
+    result_1 = tseitin_strategy.wire_or(var, const, cnf_builder)
+    result_2 = tseitin_strategy.wire_or(const, var, cnf_builder)
     assert cnf_builder.number_of_variables == 0
     assert not cnf_builder.clauses
 

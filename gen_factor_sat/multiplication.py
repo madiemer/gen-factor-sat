@@ -1,7 +1,7 @@
 import functools
 import itertools
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Generic, TypeVar
+from typing import Sequence, Tuple, Generic, TypeVar
 
 from gen_factor_sat import utils
 from gen_factor_sat.circuit import GateStrategy, SimpleCircuitStrategy, NBitCircuitStrategy
@@ -10,30 +10,34 @@ T = TypeVar('T')
 W = TypeVar('W')
 
 
-class Multiplier(Generic[T, W], ABC):
+class MultiplicationStrategy(Generic[T, W], ABC):
 
     @abstractmethod
-    def multiply(self, factor_1: List[T], factor_2: List[T], writer: W) -> List[T]:
+    def multiply(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W = None) -> Sequence[T]:
         pass
 
 
-class KaratsubaMultiplier(Multiplier):
+class RecursiveMultiplicationStrategy(Generic[T, W], MultiplicationStrategy[T, W], ABC):
 
-    def __init__(self,
-                 gate_strategy: GateStrategy[T, W],
-                 n_bit_circuit: NBitCircuitStrategy[T, W],
-                 simple_multiplier: Multiplier[T, W],
-                 min_len=20):
-        self.circuit = gate_strategy
-        self.n_bit_circuit = n_bit_circuit
-        self.simple_multiplier = simple_multiplier
-        self.min_len = min_len
+    @abstractmethod
+    def multiply_recursive(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W = None) -> Sequence[T]:
+        pass
 
-    def multiply(self, factor_1: List[T], factor_2: List[T], writer: W) -> List[T]:
+
+class KaratsubaStrategy(
+    Generic[T, W],
+    GateStrategy[T, W],
+    NBitCircuitStrategy[T, W],
+    RecursiveMultiplicationStrategy[T, W],
+    ABC
+):
+    min_len: int = 20
+
+    def multiply_recursive(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W = None) -> Sequence[T]:
         max_factor_length = max(len(factor_1), len(factor_2))
 
         if max_factor_length <= self.min_len:
-            return self.simple_multiplier.multiply(factor_1, factor_2, writer)
+            return self.multiply(factor_1, factor_2, writer)
         else:
             half_factor_length = (max_factor_length + 1) // 2
 
@@ -44,30 +48,32 @@ class KaratsubaMultiplier(Multiplier):
             result_high = self.multiply(f1_high, f2_high, writer)
 
             # result_mid = karatsuba((f1_high + f1_low), (f2_high + f2_low)) - result_high - result_low
-            factor_1_sum = self.n_bit_circuit.n_bit_adder(f1_high, f1_low, self.circuit.zero, writer)
-            factor_2_sum = self.n_bit_circuit.n_bit_adder(f2_high, f2_low, self.circuit.zero, writer)
+            factor_1_sum = self.n_bit_adder(f1_high, f1_low, self.zero, writer)
+            factor_2_sum = self.n_bit_adder(f2_high, f2_low, self.zero, writer)
 
             result_mid = self.multiply(factor_1_sum, factor_2_sum, writer)
-            result_mid = self.n_bit_circuit.subtract(result_mid, result_high, writer)
-            result_mid = self.n_bit_circuit.subtract(result_mid, result_low, writer)
+            result_mid = self.subtract(result_mid, result_high, writer)
+            result_mid = self.subtract(result_mid, result_low, writer)
 
             # result = result_high * 2^(2 * half_factor_length) + result_mid * 2^(half_factor_length) + result_low
-            shifted_high = self.n_bit_circuit.shift(result_high, half_factor_length, writer)
-            result = self.n_bit_circuit.n_bit_adder(shifted_high, result_mid, self.circuit.zero, writer)
+            shifted_high = self.shift(result_high, half_factor_length, writer)
+            result = self.n_bit_adder(shifted_high, result_mid, self.zero, writer)
 
-            shifted_high = self.n_bit_circuit.shift(result, half_factor_length, writer)
-            result = self.n_bit_circuit.n_bit_adder(shifted_high, result_low, self.circuit.zero, writer)
+            shifted_high = self.shift(result, half_factor_length, writer)
+            result = self.n_bit_adder(shifted_high, result_low, self.zero, writer)
 
             return result
 
 
-class WallaceTreeMultiplier(Multiplier):
+class WallaceTreeStrategy(
+    Generic[T, W],
+    GateStrategy[T, W],
+    SimpleCircuitStrategy[T, W],
+    MultiplicationStrategy[T, W],
+    ABC
+):
 
-    def __init__(self, gate_strategy: GateStrategy[T, W], simple_circuit: SimpleCircuitStrategy[T, W]):
-        self.gate_strategy = gate_strategy
-        self.simple_circuit = simple_circuit
-
-    def multiply(self, factor_1: List[T], factor_2: List[T], writer: W) -> List[T]:
+    def multiply(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W = None) -> Sequence[T]:
         products = self._weighted_product(factor_1, factor_2, writer)
         grouped_products = utils.group(products)
 
@@ -79,25 +85,25 @@ class WallaceTreeMultiplier(Multiplier):
             grouped_products = utils.group(products)
 
         result = []
-        last_carry = self.gate_strategy.zero
+        last_carry = self.zero
         for key in sorted(grouped_products):
             products = grouped_products[key]
 
             if len(products) == 1:
                 x, = products
-                sum, carry = self.simple_circuit.half_adder(x, last_carry, writer)
+                sum, carry = self.half_adder(x, last_carry, writer)
                 last_carry = carry
                 result.append(sum)
             else:
                 x, y = products
-                sum, carry = self.simple_circuit.full_adder(x, y, last_carry, writer)
+                sum, carry = self.full_adder(x, y, last_carry, writer)
                 last_carry = carry
                 result.append(sum)
 
         result.append(last_carry)
         return result[::-1]
 
-    def _weighted_product(self, factor_1: List[T], factor_2: List[T], writer: W):
+    def _weighted_product(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W):
         for i, x in enumerate(factor_1):
             w_x = len(factor_1) - i
 
@@ -105,23 +111,23 @@ class WallaceTreeMultiplier(Multiplier):
                 w_y = len(factor_2) - j
 
                 weight_sum = w_x + w_y
-                product = self.gate_strategy.wire_and(x, y, writer)
+                product = self.wire_and(x, y, writer)
 
                 yield weight_sum, product
 
-    def _add_layer(self, weight: int, products: List[T], writer: W) -> List[Tuple[int, T]]:
+    def _add_layer(self, weight: int, products: Sequence[T], writer: W) -> Sequence[Tuple[int, T]]:
         if len(products) == 1:
             return [(weight, products[0])]
 
         elif len(products) == 2:
             x, y = products
-            sum, carry = self.simple_circuit.half_adder(x, y, writer)
+            sum, carry = self.half_adder(x, y, writer)
 
             return [(weight, sum), (weight + 1, carry)]
 
         elif len(products) > 2:
             x, y, z = products[:3]
-            sum, carry = self.simple_circuit.full_adder(x, y, z, writer)
+            sum, carry = self.full_adder(x, y, z, writer)
 
             return [(weight, sum), (weight + 1, carry)] + [(weight, x) for x in products[3:]]
 

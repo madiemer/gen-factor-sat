@@ -1,14 +1,16 @@
 import random
 import sys
+from abc import ABC
 from dataclasses import dataclass
 from math import ceil
 from random import Random
-from typing import List, Set, Optional, Tuple, Generic, TypeVar
+from typing import List, Sequence, Set, Optional, Tuple, Generic, TypeVar
 
 from gen_factor_sat import utils
-from gen_factor_sat.circuit import GeneralNBitCircuitStrategy, NBitCircuitStrategy
-from gen_factor_sat.multiplier import Multiplier, KaratsubaMultiplier, WallaceTreeMultiplier
-from gen_factor_sat.tseitin_encoding import Symbol, Clause, Variable, is_no_tautology
+from gen_factor_sat.circuit import NBitCircuitStrategy, ConstantStrategy, GeneralSimpleCircuitStrategy, \
+    GeneralNBitCircuitStrategy
+from gen_factor_sat.multiplication import MultiplicationStrategy, KaratsubaStrategy, WallaceTreeStrategy
+from gen_factor_sat.tseitin_encoding import Symbol, Constant, Clause, Variable, is_no_tautology
 from gen_factor_sat.tseitin_strategies import TseitinGateStrategy, CNFBuilder, TseitinCircuitStrategy
 
 # Multiplier = Callable[[List[Symbol], List[Symbol], TseitinStrategy], List[Symbol]]
@@ -19,16 +21,34 @@ T = TypeVar('T')
 W = TypeVar('W')
 
 
-class FactoringCircuit(Generic[T, W]):
-    def __init__(self, n_bit_circuit: NBitCircuitStrategy[T, W],
-                 multiplier: Multiplier[T, W]):
-        self.n_bit_circuit = n_bit_circuit
-        self.multiplier = multiplier
+class FactoringCircuit(Generic[T, W], NBitCircuitStrategy[T, W], MultiplicationStrategy[T, W], ABC):
 
-    def factorize(self, factor_1: List[T], factor_2: List[T], number: List[T], writer: W) -> T:
-        mult_result = self.multiplier.multiply(factor_1, factor_2, writer)
-        fact_result = self.n_bit_circuit.n_bit_equality(mult_result, number, writer)
+    def factorize(self, factor_1: Sequence[T], factor_2: Sequence[T], number: Sequence[T], writer: W = None) -> T:
+        mult_result = self.multiply(factor_1, factor_2, writer)
+        fact_result = self.n_bit_equality(mult_result, number, writer)
         return fact_result
+
+
+class TseitinFactoringStrategy(
+    TseitinGateStrategy,
+    TseitinCircuitStrategy,
+    GeneralNBitCircuitStrategy[Symbol, CNFBuilder],
+    WallaceTreeStrategy[Symbol, CNFBuilder],
+    KaratsubaStrategy[Symbol, CNFBuilder],
+    FactoringCircuit[Symbol, CNFBuilder]
+):
+    pass
+
+
+class ConstantFactoringStrategy(
+    ConstantStrategy,
+    GeneralSimpleCircuitStrategy[Constant, None],
+    GeneralNBitCircuitStrategy[Constant, None],
+    WallaceTreeStrategy[Constant, None],
+    KaratsubaStrategy[Constant, None],
+    FactoringCircuit[Constant, None]
+):
+    pass
 
 
 @dataclass
@@ -76,7 +96,7 @@ def factorize_random_number(max_value: int, seed: Optional[int]) -> FactoringSat
 
 def factorize_number(number: int) -> FactoringSat:
     cnf_builder = CNFBuilder()
-    factoring_circuit = create_default_tseitin_circuit()
+    factoring_circuit = TseitinFactoringStrategy()
 
     bin_number = utils.to_bin_list(number)
     factor_length_1, factor_length_2 = _factor_lengths(len(bin_number))
@@ -100,38 +120,6 @@ def factorize_number(number: int) -> FactoringSat:
         number_of_variables=cnf_builder.number_of_variables,
         clauses=clauses
     )
-
-
-def create_default_tseitin_circuit() -> FactoringCircuit[Symbol, CNFBuilder]:
-    gate_strategy = TseitinGateStrategy()
-
-    simple_circuit = TseitinCircuitStrategy(
-        gate_strategy=gate_strategy
-    )
-
-    n_bit_circuit = GeneralNBitCircuitStrategy(
-        gate_strategy=gate_strategy,
-        circuit_strategy=simple_circuit
-    )
-
-    wallace_mult = WallaceTreeMultiplier(
-        gate_strategy=gate_strategy,
-        simple_circuit=simple_circuit
-    )
-
-    karatsuba = KaratsubaMultiplier(
-        gate_strategy=gate_strategy,
-        n_bit_circuit=n_bit_circuit,
-        simple_multiplier=wallace_mult
-    )
-
-    factoring_circuit = FactoringCircuit[Symbol, CNFBuilder](
-        n_bit_circuit=n_bit_circuit,
-        multiplier=karatsuba
-    )
-
-    return factoring_circuit
-
 
 def _generate_number(max_value, seed: int) -> int:
     rand = Random(seed)

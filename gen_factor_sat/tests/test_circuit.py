@@ -3,7 +3,7 @@ from hypothesis import given, assume
 from hypothesis.strategies import integers, randoms
 from random import Random
 
-from gen_factor_sat import tseitin_encoding
+from gen_factor_sat.factoring_sat import TseitinFactoringStrategy, ConstantFactoringStrategy
 from gen_factor_sat.tseitin_strategies import CNFBuilder, TseitinGateStrategy, TseitinCircuitStrategy
 from gen_factor_sat.circuit import ConstantStrategy, GeneralSimpleCircuitStrategy, GeneralNBitCircuitStrategy
 from gen_factor_sat import utils
@@ -11,20 +11,7 @@ from gen_factor_sat.tests.test_multiplication import assign, run_cnf
 
 @pytest.fixture()
 def tseitin_circuit():
-    cnf_builder = CNFBuilder()
-    gate_strategy = TseitinGateStrategy(cnf_builder)
-
-    simple_circuit = TseitinCircuitStrategy(
-        cnf_builder=cnf_builder,
-        gate_strategy=gate_strategy
-    )
-
-    n_bit_circuit = GeneralNBitCircuitStrategy(
-        gate_strategy=gate_strategy,
-        circuit_strategy=simple_circuit
-    )
-
-    return n_bit_circuit
+    return ConstantFactoringStrategy()
 
 #
 # @given(integers(), randoms())
