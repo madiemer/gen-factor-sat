@@ -1,13 +1,10 @@
 import pytest
 from hypothesis import given, assume
-from hypothesis.strategies import integers, randoms
-from random import Random
+from hypothesis.strategies import integers
 
-from gen_factor_sat.factoring_sat import TseitinFactoringStrategy, ConstantFactoringStrategy
-from gen_factor_sat.tseitin_strategies import CNFBuilder, TseitinGateStrategy, TseitinCircuitStrategy
-from gen_factor_sat.circuit import ConstantStrategy, GeneralSimpleCircuitStrategy, GeneralNBitCircuitStrategy
 from gen_factor_sat import utils
-from gen_factor_sat.tests.test_multiplication import assign, run_cnf
+from gen_factor_sat.factoring_sat import ConstantFactoringStrategy
+
 
 @pytest.fixture()
 def tseitin_circuit():

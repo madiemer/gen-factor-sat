@@ -105,20 +105,14 @@ def factorize_number(number: int) -> FactoringSat:
     factor_2 = cnf_builder.next_variables(factor_length_2)
 
     fact_result = factoring_circuit.factorize(factor_1, factor_2, bin_number, cnf_builder)
-
-    gate_strategy = TseitinGateStrategy()
-    gate_strategy.assume(fact_result, gate_strategy.one, cnf_builder)
-
-    # For performance reasons it is better to check all clauses at
-    # once instead of checking the clauses whenever they are added
-    clauses = set(filter(is_no_tautology, cnf_builder.clauses))
+    factoring_circuit.assume(fact_result, factoring_circuit.one, cnf_builder)
 
     return FactoringSat(
         number=number,
         factor_1=factor_1,
         factor_2=factor_2,
         number_of_variables=cnf_builder.number_of_variables,
-        clauses=clauses
+        clauses=cnf_builder.build_clauses()
     )
 
 def _generate_number(max_value, seed: int) -> int:

@@ -1,9 +1,9 @@
 from abc import ABC
-from typing import List, TypeVar
+from typing import List, TypeVar, Callable, Set, Tuple
 
 from gen_factor_sat import tseitin_encoding
 from gen_factor_sat.circuit import GateStrategy, GeneralSimpleCircuitStrategy
-from gen_factor_sat.tseitin_encoding import Symbol, Constant, Variable, constant, variable
+from gen_factor_sat.tseitin_encoding import Symbol, Constant, Variable, constant, variable, Clause
 
 T = TypeVar('T')
 
@@ -11,30 +11,33 @@ T = TypeVar('T')
 class CNFBuilder:
     def __init__(self, number_of_variables=0):
         self.number_of_variables = number_of_variables
-        self.clauses = set()
+        self._clauses = set()
 
-    def from_tseitin(self, tseitin_transformation, *args):
+    def build_clauses(self) -> Set[Clause]:
+        return set(filter(tseitin_encoding.is_no_tautology, self._clauses))
+
+    def from_tseitin(self, tseitin_transformation, *args) -> Variable:
         output = self.next_variable()
         clauses = tseitin_transformation(*args, output)
         self.append_clauses(clauses)
         return output
 
-    def next_variables(self, amount) -> List[Variable]:
+    def next_variables(self, amount: int) -> List[Variable]:
         return [self.next_variable() for _ in range(amount)]
 
     def next_variable(self) -> Variable:
         self.number_of_variables += 1
         return variable(self.number_of_variables)
 
-    def append_clauses(self, clauses):
-        self.clauses.update(clauses)
+    def append_clauses(self, clauses: Set[Clause]):
+        self._clauses.update(clauses)
 
 
 class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
     zero: Constant = constant('0')
     one: Constant = constant('1')
 
-    def assume(self, x: Symbol, value: Constant, writer: CNFBuilder) -> Constant:
+    def assume(self, x: Symbol, value: Constant, writer: CNFBuilder = None) -> Constant:
         if self.is_constant(x) and x != value:
             writer.append_clauses({tseitin_encoding.empty_clause()})
         elif not self.is_constant(x):
@@ -45,7 +48,7 @@ class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
 
         return value
 
-    def wire_and(self, x: Symbol, y: Symbol, writer: CNFBuilder) -> Symbol:
+    def wire_and(self, x: Symbol, y: Symbol, writer: CNFBuilder = None) -> Symbol:
         if self.is_constant(x) or self.is_constant(y):
             return self._constant_and(x, y)
         else:
