@@ -3,11 +3,11 @@ import sys
 from dataclasses import dataclass
 from math import ceil
 from random import Random
-from typing import List, Set, Optional, Tuple
+from typing import List, Set, Optional, Tuple, cast
 
 from gen_factor_sat import utils
 from gen_factor_sat.factoring import TseitinFactoringStrategy
-from gen_factor_sat.tseitin_encoding import Clause, Variable
+from gen_factor_sat.tseitin_encoding import Clause, Symbol, Variable
 from gen_factor_sat.tseitin_strategies import CNFBuilder
 
 
@@ -64,7 +64,13 @@ def factorize_number(number: int) -> FactoringSat:
     factor_1 = cnf_builder.next_variables(factor_length_1)
     factor_2 = cnf_builder.next_variables(factor_length_2)
 
-    fact_result = factoring_circuit.factorize(factor_1, factor_2, bin_number, cnf_builder)
+    fact_result = factoring_circuit.factorize(
+        cast(List[Symbol], factor_1),
+        cast(List[Symbol], factor_2),
+        cast(List[Symbol], bin_number),
+        cnf_builder
+    )
+
     factoring_circuit.assume(fact_result, factoring_circuit.one, cnf_builder)
 
     return FactoringSat(

@@ -2,8 +2,7 @@ import functools
 import itertools
 import operator as op
 from abc import ABC, abstractmethod
-from typing import Sequence, List, MutableSequence
-from typing import Tuple, Generic, TypeVar
+from typing import List, Tuple, Generic, TypeVar
 
 from gen_factor_sat.tseitin_encoding import Constant, constant
 
@@ -37,6 +36,12 @@ class GateStrategy(Generic[T, W], ABC):
 
     def is_constant(self, value: T) -> bool:
         return (value == self.zero) or (value == self.one)
+
+    def is_zero(self, value: T) -> bool:
+        return value == self.zero
+
+    def is_one(self, value: T) -> bool:
+        return value == self.one
 
 
 class ConstantStrategy(GateStrategy[Constant, None]):
@@ -134,29 +139,36 @@ class GeneralSimpleCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, 
 class NBitCircuitStrategy(Generic[T, W], ABC):
 
     @abstractmethod
-    def n_bit_adder(self, inputs_1: Sequence[T], inputs_2: Sequence[T], carry: T, writer: W) -> Sequence[T]:
+    def n_bit_adder(self, inputs_1: List[T], inputs_2: List[T], carry: T, writer: W) -> List[T]:
         pass
 
     @abstractmethod
-    def subtract(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> Sequence[T]:
+    def subtract(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> List[T]:
         pass
 
     @abstractmethod
-    def n_bit_equality(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> T:
+    def n_bit_equality(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> T:
         pass
 
     @abstractmethod
-    def shift(self, inputs_1: Sequence[T], shifts: int, writer: W) -> Sequence[T]:
+    def shift(self, inputs_1: List[T], shifts: int, writer: W) -> List[T]:
         pass
 
     @abstractmethod
-    def align(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> Tuple[Sequence[T], Sequence[T]]:
+    def align(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> Tuple[List[T], List[T]]:
         pass
+
+    @abstractmethod
+    def normalize(self, inputs: List[T]) -> List[T]:
+        pass
+
+    def all_zero(self, values: List[T]) -> bool:
+        return not self.normalize(values)
 
 
 class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W], NBitCircuitStrategy[T, W], ABC):
 
-    def n_bit_adder(self, inputs_1: Sequence[T], inputs_2: Sequence[T], carry: T, writer: W) -> Sequence[T]:
+    def n_bit_adder(self, inputs_1: List[T], inputs_2: List[T], carry: T, writer: W) -> List[T]:
         if not inputs_1:
             return self.propagate(inputs_2, carry, writer)
         elif not inputs_2:
@@ -170,7 +182,7 @@ class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W]
 
             return init_sum + [lsb_sum]
 
-    def propagate(self, inputs: Sequence[T], carry: T, writer: W) -> Sequence[T]:
+    def propagate(self, inputs: List[T], carry: T, writer: W) -> List[T]:
         if not inputs:
             return [carry]
         else:
@@ -181,7 +193,7 @@ class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W]
 
             return init_sum + [lsb_sum]
 
-    # def n_bit_adder(xs: Sequence[T], ys: Sequence[T], c: T, strategy: Strategy[T]) -> Sequence[T]:
+    # def n_bit_adder(xs: List[T], ys: List[T], c: T, strategy: Strategy[T]) -> List[T]:
     #     aligned_xs, aligned_ys = align(xs, ys)
     #
     #     carry = c
@@ -199,15 +211,18 @@ class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W]
     #     result.reverse()
     #     return result
 
-    def subtract(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> Sequence[T]:
-        aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2, writer)
+    def subtract(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> List[T]:
+        if self.all_zero(inputs_2):
+            return inputs_1
+        else:
+            aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2, writer)
 
-        complement = list(map(functools.partial(self.wire_not, writer=writer), aligned_inputs_2))
-        output_sum = self.n_bit_adder(aligned_inputs_1, complement, self.one, writer)
+            complement = list(map(functools.partial(self.wire_not, writer=writer), aligned_inputs_2))
+            output_sum = self.n_bit_adder(aligned_inputs_1, complement, self.one, writer)
 
-        return output_sum[1:]  # Carry is not needed
+            return output_sum[1:]  # Carry is not needed
 
-    def n_bit_equality(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> T:
+    def n_bit_equality(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> T:
         aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2, writer)
 
         pairwise_equal = itertools.starmap(functools.partial(self.equality, writer=writer),
@@ -217,11 +232,17 @@ class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W]
 
         return all_equal
 
-    def shift(self, inputs_1: Sequence[T], shifts: int, writer: W) -> Sequence[T]:
+    def shift(self, inputs_1: List[T], shifts: int, writer: W) -> List[T]:
         return inputs_1 + [self.zero] * shifts
 
-    def align(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> Tuple[List[T], List[T]]:
+    def align(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> Tuple[List[T], List[T]]:
         aligned_inputs_1 = ([self.zero] * (len(inputs_2) - len(inputs_1))) + inputs_1
         aligned_inputs_2 = ([self.zero] * (len(inputs_1) - len(inputs_2))) + inputs_2
 
         return aligned_inputs_1, aligned_inputs_2
+
+    def all_zero(self, values: List[T]):
+        return all(self.is_zero(value) for value in values)
+
+    def normalize(self, inputs: List[T]) -> List[T]:
+        return list(itertools.dropwhile(self.is_zero, inputs))

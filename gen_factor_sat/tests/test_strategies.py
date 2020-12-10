@@ -19,7 +19,7 @@ def create_cnf_builder():
 
 
 @pytest.mark.parametrize('initial_variables', [0, 1, 42])
-def test_next_variables(create_cnf_builder, initial_variables):
+def test_next_variable(create_cnf_builder, initial_variables):
     cnf_builder = create_cnf_builder(initial_variables)
 
     for i in range(20):
@@ -38,8 +38,8 @@ def test_next_variables(create_cnf_builder, initial_variables):
 
 @pytest.mark.parametrize('initial_variables', [0, 1, 42])
 def test_add_clauses(create_cnf_builder, initial_variables):
-    variable_1 = variable(1)
-    variable_2 = variable(-2)
+    variable_1 = variable(15)
+    variable_2 = variable(-16)
 
     cnf_builder = create_cnf_builder(initial_variables)
     tseitin_strategy = TseitinGateStrategy()
@@ -56,9 +56,10 @@ def test_add_clauses(create_cnf_builder, initial_variables):
     expected_clauses.update(and_equality(variable_1, variable_2, result_and))
     expected_clauses.update(or_equality(variable_1, variable_2, result_or))
 
-    assert any(result_and in clause for clause in cnf_builder.__clauses)
-    assert any(result_or in clause for clause in cnf_builder.__clauses)
-    assert cnf_builder.__clauses == expected_clauses
+    clauses = cnf_builder.build_clauses()
+    assert any(result_and in clause for clause in clauses)
+    assert any(result_or in clause for clause in clauses)
+    assert clauses == expected_clauses
 
 
 def test_build_clauses(create_cnf_builder):
@@ -73,7 +74,6 @@ def test_build_clauses(create_cnf_builder):
     clauses = equal_equality(variable(-1), variable(1), variable(-1))
     cnf_builder.append_clauses(clauses)
 
-    print(cnf_builder.__clauses)
     assert not list(filter(has_duplicates, cnf_builder.build_clauses()))
 
 
@@ -93,7 +93,7 @@ def test_constant_propagation(create_cnf_builder, constant_value):
     result_1 = tseitin_strategy.wire_and(var, const, cnf_builder)
     result_2 = tseitin_strategy.wire_and(const, var, cnf_builder)
     assert cnf_builder.number_of_variables == 0
-    assert not cnf_builder.__clauses
+    assert not cnf_builder.build_clauses()
 
     assert result_1 == result_2
     if const == '1':
@@ -104,27 +104,10 @@ def test_constant_propagation(create_cnf_builder, constant_value):
     result_1 = tseitin_strategy.wire_or(var, const, cnf_builder)
     result_2 = tseitin_strategy.wire_or(const, var, cnf_builder)
     assert cnf_builder.number_of_variables == 0
-    assert not cnf_builder.__clauses
+    assert not cnf_builder.build_clauses()
 
     assert result_1 == result_2
     if const == '1':
         assert result_1 == const
     else:
         assert result_1 == var
-
-# def test_equals_eval_strategy(tseitin_strategy, eval_strategy):
-#     formula = CNF(from_clauses=tseitin_strategy.clauses)
-#
-#     tseitin_strategy.wire_and(x, y)
-#
-#
-#
-# def run_cnf(input_assignment, output_variables, clauses):
-#     formula = CNF(clauses)
-#
-#     with Solver(name="cadical", bootstrap_with=formula) as solver:
-#         solver.solve(assumptions=input_assignment)
-#         model = solver.get_model()
-#
-#     result_assign = [(model[r - 1] >= 0 if r != '0' else False) for r in output_variables]
-#     return list(map(lambda x: bin(x)[2:], result_assign))

@@ -64,7 +64,7 @@ def run_tseitin_mult(tseitin_multiplier, factor_1, factor_2):
     assignment_1 = list(assign(factor_1, bin_factor_1))
     assignment_2 = list(assign(factor_2, bin_factor_2))
 
-    bin_result = run_cnf(assignment_1 + assignment_2, result, cnf_builder.__clauses)
+    bin_result = run_cnf(assignment_1 + assignment_2, result, cnf_builder.build_clauses())
 
     return utils.to_int(bin_result)
 

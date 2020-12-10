@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Sequence, Generic, TypeVar
+from typing import List, Generic, TypeVar
 
 from gen_factor_sat.circuit import NBitCircuitStrategy, ConstantStrategy, GeneralSimpleCircuitStrategy, \
     GeneralNBitCircuitStrategy
@@ -14,7 +14,7 @@ W = TypeVar('W')
 class FactoringCircuit(Generic[T, W], ABC):
 
     @abstractmethod
-    def factorize(self, factor_1: Sequence[T], factor_2: Sequence[T], number: Sequence[T], writer: W) -> T:
+    def factorize(self, factor_1: List[T], factor_2: List[T], number: List[T], writer: W) -> T:
         pass
 
 
@@ -25,7 +25,7 @@ class GeneralFactoringCircuit(
     FactoringCircuit[T, W],
     ABC
 ):
-    def factorize(self, factor_1: Sequence[T], factor_2: Sequence[T], number: Sequence[T], writer: W) -> T:
+    def factorize(self, factor_1: List[T], factor_2: List[T], number: List[T], writer: W) -> T:
         mult_result = self.multiply(factor_1, factor_2, writer)
         fact_result = self.n_bit_equality(mult_result, number, writer)
         return fact_result

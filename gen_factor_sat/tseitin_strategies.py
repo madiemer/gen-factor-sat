@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import List, TypeVar, Callable, Set, Tuple
+from typing import List, TypeVar, Callable, Set, Tuple, cast
 
 from gen_factor_sat import tseitin_encoding
 from gen_factor_sat.circuit import GateStrategy, GeneralSimpleCircuitStrategy
@@ -37,14 +37,15 @@ class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
     zero: Constant = constant('0')
     one: Constant = constant('1')
 
-    def assume(self, x: Symbol, value: Constant, writer: CNFBuilder) -> Constant:
-        if self.is_constant(x) and x != value:
+    def assume(self, symbol: Symbol, value: Constant, writer: CNFBuilder) -> Constant:
+        if self.is_constant(symbol) and symbol != value:
             writer.append_clauses({tseitin_encoding.empty_clause()})
-        elif not self.is_constant(x):
+        elif not self.is_constant(symbol):
+            var = cast(Variable, symbol)  # Type hint
             if value == self.one:
-                writer.append_clauses({tseitin_encoding.unit_clause(x)})
+                writer.append_clauses({tseitin_encoding.unit_clause(var)})
             else:
-                writer.append_clauses({tseitin_encoding.unit_clause(variable(-x))})
+                writer.append_clauses({tseitin_encoding.unit_clause(variable(-var))})
 
         return value
 
@@ -64,7 +65,8 @@ class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
         if self.is_constant(input):
             return self._constant_not(input)
         else:
-            return variable(-input)
+            var = cast(Variable, input)  # Type hint
+            return variable(-var)
 
     def _constant_and(self, x, y):
         if x == self.zero or y == self.zero:
