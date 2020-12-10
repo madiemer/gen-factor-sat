@@ -11,10 +11,10 @@ T = TypeVar('T')
 class CNFBuilder:
     def __init__(self, number_of_variables=0):
         self.number_of_variables = number_of_variables
-        self._clauses = set()
+        self.__clauses = set()
 
     def build_clauses(self) -> Set[Clause]:
-        return set(filter(tseitin_encoding.is_no_tautology, self._clauses))
+        return set(filter(tseitin_encoding.is_no_tautology, self.__clauses))
 
     def from_tseitin(self, tseitin_transformation, *args) -> Variable:
         output = self.next_variable()
@@ -30,14 +30,14 @@ class CNFBuilder:
         return variable(self.number_of_variables)
 
     def append_clauses(self, clauses: Set[Clause]):
-        self._clauses.update(clauses)
+        self.__clauses.update(clauses)
 
 
 class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
     zero: Constant = constant('0')
     one: Constant = constant('1')
 
-    def assume(self, x: Symbol, value: Constant, writer: CNFBuilder = None) -> Constant:
+    def assume(self, x: Symbol, value: Constant, writer: CNFBuilder) -> Constant:
         if self.is_constant(x) and x != value:
             writer.append_clauses({tseitin_encoding.empty_clause()})
         elif not self.is_constant(x):
@@ -48,23 +48,23 @@ class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
 
         return value
 
-    def wire_and(self, x: Symbol, y: Symbol, writer: CNFBuilder = None) -> Symbol:
-        if self.is_constant(x) or self.is_constant(y):
-            return self._constant_and(x, y)
+    def wire_and(self, input_1: Symbol, input_2: Symbol, writer: CNFBuilder) -> Symbol:
+        if self.is_constant(input_1) or self.is_constant(input_2):
+            return self._constant_and(input_1, input_2)
         else:
-            return writer.from_tseitin(tseitin_encoding.and_equality, x, y)
+            return writer.from_tseitin(tseitin_encoding.and_equality, input_1, input_2)
 
-    def wire_or(self, x: Symbol, y: Symbol, writer: CNFBuilder) -> Symbol:
-        if self.is_constant(x) or self.is_constant(y):
-            return self._constant_or(x, y)
+    def wire_or(self, input_1: Symbol, input_2: Symbol, writer: CNFBuilder) -> Symbol:
+        if self.is_constant(input_1) or self.is_constant(input_2):
+            return self._constant_or(input_1, input_2)
         else:
-            return writer.from_tseitin(tseitin_encoding.or_equality, x, y)
+            return writer.from_tseitin(tseitin_encoding.or_equality, input_1, input_2)
 
-    def wire_not(self, x: Symbol, writer: CNFBuilder) -> Symbol:
-        if self.is_constant(x):
-            return self._constant_not(x)
+    def wire_not(self, input: Symbol, writer: CNFBuilder) -> Symbol:
+        if self.is_constant(input):
+            return self._constant_not(input)
         else:
-            return variable(-x)
+            return variable(-input)
 
     def _constant_and(self, x, y):
         if x == self.zero or y == self.zero:

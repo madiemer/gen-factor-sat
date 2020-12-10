@@ -1,54 +1,14 @@
 import random
 import sys
-from abc import ABC
 from dataclasses import dataclass
 from math import ceil
 from random import Random
-from typing import List, Sequence, Set, Optional, Tuple, Generic, TypeVar
+from typing import List, Set, Optional, Tuple
 
 from gen_factor_sat import utils
-from gen_factor_sat.circuit import NBitCircuitStrategy, ConstantStrategy, GeneralSimpleCircuitStrategy, \
-    GeneralNBitCircuitStrategy
-from gen_factor_sat.multiplication import MultiplicationStrategy, KaratsubaStrategy, WallaceTreeStrategy
-from gen_factor_sat.tseitin_encoding import Symbol, Constant, Clause, Variable, is_no_tautology
-from gen_factor_sat.tseitin_strategies import TseitinGateStrategy, CNFBuilder, TseitinCircuitStrategy
-
-# Multiplier = Callable[[List[Symbol], List[Symbol], TseitinStrategy], List[Symbol]]
-# Multiplication = namedtuple('Multiplication', ['factor_1', 'factor_2', 'result'])
-
-
-T = TypeVar('T')
-W = TypeVar('W')
-
-
-class FactoringCircuit(Generic[T, W], NBitCircuitStrategy[T, W], MultiplicationStrategy[T, W], ABC):
-
-    def factorize(self, factor_1: Sequence[T], factor_2: Sequence[T], number: Sequence[T], writer: W = None) -> T:
-        mult_result = self.multiply(factor_1, factor_2, writer)
-        fact_result = self.n_bit_equality(mult_result, number, writer)
-        return fact_result
-
-
-class TseitinFactoringStrategy(
-    TseitinGateStrategy,
-    TseitinCircuitStrategy,
-    GeneralNBitCircuitStrategy[Symbol, CNFBuilder],
-    WallaceTreeStrategy[Symbol, CNFBuilder],
-    KaratsubaStrategy[Symbol, CNFBuilder],
-    FactoringCircuit[Symbol, CNFBuilder]
-):
-    pass
-
-
-class ConstantFactoringStrategy(
-    ConstantStrategy,
-    GeneralSimpleCircuitStrategy[Constant, None],
-    GeneralNBitCircuitStrategy[Constant, None],
-    WallaceTreeStrategy[Constant, None],
-    KaratsubaStrategy[Constant, None],
-    FactoringCircuit[Constant, None]
-):
-    pass
+from gen_factor_sat.factoring import TseitinFactoringStrategy
+from gen_factor_sat.tseitin_encoding import Clause, Variable
+from gen_factor_sat.tseitin_strategies import CNFBuilder
 
 
 @dataclass
@@ -114,6 +74,7 @@ def factorize_number(number: int) -> FactoringSat:
         number_of_variables=cnf_builder.number_of_variables,
         clauses=cnf_builder.build_clauses()
     )
+
 
 def _generate_number(max_value, seed: int) -> int:
     rand = Random(seed)

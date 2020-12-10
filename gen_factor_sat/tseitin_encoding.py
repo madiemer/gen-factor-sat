@@ -7,16 +7,16 @@ Symbol = Union[Constant, Variable]
 Clause = FrozenSet[int]
 
 
-def constant(x: str) -> Constant:
-    if x == '0' or x == '1':
-        return Constant(x)
+def constant(bin_str: str) -> Constant:
+    if bin_str == '0' or bin_str == '1':
+        return Constant(bin_str)
     else:
-        raise ValueError('{0} is no constant'.format(x))
+        raise ValueError('{0} is no constant'.format(bin_str))
 
 
-def variable(x: int) -> Variable:
-    if x != 0:
-        return Variable(x)
+def variable(var_id: int) -> Variable:
+    if var_id != 0:
+        return Variable(var_id)
     else:
         raise ValueError('0 cannot be used as variable')
 

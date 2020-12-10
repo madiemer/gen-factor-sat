@@ -56,9 +56,9 @@ def test_add_clauses(create_cnf_builder, initial_variables):
     expected_clauses.update(and_equality(variable_1, variable_2, result_and))
     expected_clauses.update(or_equality(variable_1, variable_2, result_or))
 
-    assert any(result_and in clause for clause in cnf_builder._clauses)
-    assert any(result_or in clause for clause in cnf_builder._clauses)
-    assert cnf_builder._clauses == expected_clauses
+    assert any(result_and in clause for clause in cnf_builder.__clauses)
+    assert any(result_or in clause for clause in cnf_builder.__clauses)
+    assert cnf_builder.__clauses == expected_clauses
 
 
 def test_build_clauses(create_cnf_builder):
@@ -73,7 +73,7 @@ def test_build_clauses(create_cnf_builder):
     clauses = equal_equality(variable(-1), variable(1), variable(-1))
     cnf_builder.append_clauses(clauses)
 
-    print(cnf_builder._clauses)
+    print(cnf_builder.__clauses)
     assert not list(filter(has_duplicates, cnf_builder.build_clauses()))
 
 
@@ -93,7 +93,7 @@ def test_constant_propagation(create_cnf_builder, constant_value):
     result_1 = tseitin_strategy.wire_and(var, const, cnf_builder)
     result_2 = tseitin_strategy.wire_and(const, var, cnf_builder)
     assert cnf_builder.number_of_variables == 0
-    assert not cnf_builder._clauses
+    assert not cnf_builder.__clauses
 
     assert result_1 == result_2
     if const == '1':
@@ -104,7 +104,7 @@ def test_constant_propagation(create_cnf_builder, constant_value):
     result_1 = tseitin_strategy.wire_or(var, const, cnf_builder)
     result_2 = tseitin_strategy.wire_or(const, var, cnf_builder)
     assert cnf_builder.number_of_variables == 0
-    assert not cnf_builder._clauses
+    assert not cnf_builder.__clauses
 
     assert result_1 == result_2
     if const == '1':

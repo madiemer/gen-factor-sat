@@ -24,33 +24,33 @@ class GateStrategy(Generic[T, W], ABC):
         pass
 
     @abstractmethod
-    def wire_and(self, x: T, y: T, writer: W = None) -> T:
+    def wire_and(self, input_1: T, input_2: T, writer: W) -> T:
         pass
 
     @abstractmethod
-    def wire_or(self, x: T, y: T, writer: W = None) -> T:
+    def wire_or(self, input_1: T, input_2: T, writer: W) -> T:
         pass
 
     @abstractmethod
-    def wire_not(self, x: T, writer: W = None) -> T:
+    def wire_not(self, input: T, writer: W) -> T:
         pass
 
-    def is_constant(self, x: T) -> bool:
-        return (x == self.zero) or (x == self.one)
+    def is_constant(self, value: T) -> bool:
+        return (value == self.zero) or (value == self.one)
 
 
 class ConstantStrategy(GateStrategy[Constant, None]):
     zero: Constant = constant('0')
     one: Constant = constant('1')
 
-    def wire_and(self, x: Constant, y: Constant, writer: None = None) -> Constant:
-        return ConstantStrategy.__with_bool(op.and_, x, y)
+    def wire_and(self, input_1: Constant, input_2: Constant, writer: None = None) -> Constant:
+        return ConstantStrategy.__with_bool(op.and_, input_1, input_2)
 
-    def wire_or(self, x: Constant, y: Constant, writer: None = None) -> Constant:
-        return ConstantStrategy.__with_bool(op.or_, x, y)
+    def wire_or(self, input_1: Constant, input_2: Constant, writer: None = None) -> Constant:
+        return ConstantStrategy.__with_bool(op.or_, input_1, input_2)
 
-    def wire_not(self, x: Constant, writer: None = None) -> Constant:
-        return ConstantStrategy.__with_bool(op.not_, x)
+    def wire_not(self, input: Constant, writer: None = None) -> Constant:
+        return ConstantStrategy.__with_bool(op.not_, input)
 
     @staticmethod
     def __with_bool(func, *args):
@@ -68,31 +68,31 @@ class ConstantStrategy(GateStrategy[Constant, None]):
 class SimpleCircuitStrategy(Generic[T, W], ABC):
 
     @abstractmethod
-    def half_adder(self, input_1: T, input_2: T, writer: W = None) -> Tuple[T, T]:
+    def half_adder(self, input_1: T, input_2: T, writer: W) -> Tuple[T, T]:
         pass
 
     @abstractmethod
-    def full_adder(self, input_1: T, input_2: T, carry: T, writer: W = None) -> Tuple[T, T]:
+    def full_adder(self, input_1: T, input_2: T, carry: T, writer: W) -> Tuple[T, T]:
         pass
 
     @abstractmethod
-    def equality(self, input_1: T, input_2: T, writer: W = None) -> T:
+    def equality(self, input_1: T, input_2: T, writer: W) -> T:
         pass
 
     @abstractmethod
-    def xor(self, input_1: T, input_2: T, writer: W = None) -> T:
+    def xor(self, input_1: T, input_2: T, writer: W) -> T:
         pass
 
 
 class GeneralSimpleCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W], ABC):
 
-    def half_adder(self, input_1: T, input_2: T, writer: W = None) -> Tuple[T, T]:
+    def half_adder(self, input_1: T, input_2: T, writer: W) -> Tuple[T, T]:
         output_sum = self.xor(input_1, input_2, writer)
         output_carry = self.wire_and(input_1, input_2, writer)
 
         return output_sum, output_carry
 
-    def full_adder(self, input_1: T, input_2: T, carry: T, writer: W = None) -> Tuple[T, T]:
+    def full_adder(self, input_1: T, input_2: T, carry: T, writer: W) -> Tuple[T, T]:
         partial_sum, carry_1 = self.half_adder(input_1, input_2, writer)
         output_sum, carry_2 = self.half_adder(partial_sum, carry, writer)
 
@@ -100,7 +100,7 @@ class GeneralSimpleCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, 
 
         return output_sum, output_carry
 
-    def equality(self, input_1: T, input_2: T, writer: W = None) -> T:
+    def equality(self, input_1: T, input_2: T, writer: W) -> T:
         return self.wire_or(
             self.wire_and(
                 input_1,
@@ -115,7 +115,7 @@ class GeneralSimpleCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, 
             writer
         )
 
-    def xor(self, input_1: T, input_2: T, writer: W = None) -> T:
+    def xor(self, input_1: T, input_2: T, writer: W) -> T:
         return self.wire_or(
             self.wire_and(
                 input_1,
@@ -134,29 +134,29 @@ class GeneralSimpleCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, 
 class NBitCircuitStrategy(Generic[T, W], ABC):
 
     @abstractmethod
-    def n_bit_adder(self, inputs_1: Sequence[T], inputs_2: Sequence[T], carry: T, writer: W = None) -> Sequence[T]:
+    def n_bit_adder(self, inputs_1: Sequence[T], inputs_2: Sequence[T], carry: T, writer: W) -> Sequence[T]:
         pass
 
     @abstractmethod
-    def subtract(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W = None) -> Sequence[T]:
+    def subtract(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> Sequence[T]:
         pass
 
     @abstractmethod
-    def n_bit_equality(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W = None) -> T:
+    def n_bit_equality(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> T:
         pass
 
     @abstractmethod
-    def shift(self, inputs_1: Sequence[T], shifts: int, writer: W = None) -> Sequence[T]:
+    def shift(self, inputs_1: Sequence[T], shifts: int, writer: W) -> Sequence[T]:
         pass
 
     @abstractmethod
-    def align(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W = None) -> Tuple[Sequence[T], Sequence[T]]:
+    def align(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> Tuple[Sequence[T], Sequence[T]]:
         pass
 
 
 class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W], NBitCircuitStrategy[T, W], ABC):
 
-    def n_bit_adder(self, inputs_1: Sequence[T], inputs_2: Sequence[T], carry: T, writer: W = None) -> Sequence[T]:
+    def n_bit_adder(self, inputs_1: Sequence[T], inputs_2: Sequence[T], carry: T, writer: W) -> Sequence[T]:
         if not inputs_1:
             return self.propagate(inputs_2, carry, writer)
         elif not inputs_2:
@@ -170,7 +170,7 @@ class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W]
 
             return init_sum + [lsb_sum]
 
-    def propagate(self, inputs: Sequence[T], carry: T, writer: W = None) -> Sequence[T]:
+    def propagate(self, inputs: Sequence[T], carry: T, writer: W) -> Sequence[T]:
         if not inputs:
             return [carry]
         else:
@@ -199,7 +199,7 @@ class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W]
     #     result.reverse()
     #     return result
 
-    def subtract(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W = None) -> Sequence[T]:
+    def subtract(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> Sequence[T]:
         aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2, writer)
 
         complement = list(map(functools.partial(self.wire_not, writer=writer), aligned_inputs_2))
@@ -207,7 +207,7 @@ class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W]
 
         return output_sum[1:]  # Carry is not needed
 
-    def n_bit_equality(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W = None) -> T:
+    def n_bit_equality(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> T:
         aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2, writer)
 
         pairwise_equal = itertools.starmap(functools.partial(self.equality, writer=writer),
@@ -217,10 +217,10 @@ class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W]
 
         return all_equal
 
-    def shift(self, inputs_1: Sequence[T], shifts: int, writer: W = None) -> Sequence[T]:
+    def shift(self, inputs_1: Sequence[T], shifts: int, writer: W) -> Sequence[T]:
         return inputs_1 + [self.zero] * shifts
 
-    def align(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W = None) -> Tuple[List[T], List[T]]:
+    def align(self, inputs_1: Sequence[T], inputs_2: Sequence[T], writer: W) -> Tuple[List[T], List[T]]:
         aligned_inputs_1 = ([self.zero] * (len(inputs_2) - len(inputs_1))) + inputs_1
         aligned_inputs_2 = ([self.zero] * (len(inputs_1) - len(inputs_2))) + inputs_2
 

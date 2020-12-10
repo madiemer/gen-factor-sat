@@ -5,18 +5,19 @@ from pysat.formula import CNF
 from pysat.solvers import Solver
 
 from gen_factor_sat import utils
-from gen_factor_sat.circuit import ConstantStrategy, GeneralSimpleCircuitStrategy, GeneralNBitCircuitStrategy
-from gen_factor_sat.factoring_sat import ConstantFactoringStrategy, TseitinFactoringStrategy
-from gen_factor_sat.multiplication import KaratsubaStrategy, WallaceTreeStrategy
-from gen_factor_sat.tseitin_strategies import CNFBuilder, Constant
+from gen_factor_sat.factoring import ConstantFactoringStrategy, TseitinFactoringStrategy
+from gen_factor_sat.tseitin_strategies import CNFBuilder
+
 
 @pytest.fixture(scope='module')
 def constant_strategy():
     return ConstantFactoringStrategy()
 
+
 @pytest.fixture(scope='module')
 def tseitin_strategy():
     return TseitinFactoringStrategy()
+
 
 @given(x=integers(0, 2 ** 40), y=integers(0, 2 ** 40))
 def test_wallace(constant_strategy, x, y):
@@ -44,7 +45,7 @@ def run_eval_mult(multiply, factor_1, factor_2):
     bin_factor_1 = utils.to_bin_list(factor_1)
     bin_factor_2 = utils.to_bin_list(factor_2)
 
-    bin_result = multiply(bin_factor_1, bin_factor_2)
+    bin_result = multiply(bin_factor_1, bin_factor_2, None)
 
     return utils.to_int(bin_result)
 
@@ -63,7 +64,7 @@ def run_tseitin_mult(tseitin_multiplier, factor_1, factor_2):
     assignment_1 = list(assign(factor_1, bin_factor_1))
     assignment_2 = list(assign(factor_2, bin_factor_2))
 
-    bin_result = run_cnf(assignment_1 + assignment_2, result, cnf_builder._clauses)
+    bin_result = run_cnf(assignment_1 + assignment_2, result, cnf_builder.__clauses)
 
     return utils.to_int(bin_result)
 

@@ -13,14 +13,14 @@ W = TypeVar('W')
 class MultiplicationStrategy(Generic[T, W], ABC):
 
     @abstractmethod
-    def multiply(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W = None) -> Sequence[T]:
+    def multiply(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W) -> Sequence[T]:
         pass
 
 
 class RecursiveMultiplicationStrategy(Generic[T, W], MultiplicationStrategy[T, W], ABC):
 
     @abstractmethod
-    def multiply_recursive(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W = None) -> Sequence[T]:
+    def multiply_recursive(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W) -> Sequence[T]:
         pass
 
 
@@ -33,7 +33,7 @@ class KaratsubaStrategy(
 ):
     min_len: int = 20
 
-    def multiply_recursive(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W = None) -> Sequence[T]:
+    def multiply_recursive(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W) -> Sequence[T]:
         max_factor_length = max(len(factor_1), len(factor_2))
 
         if max_factor_length <= self.min_len:
@@ -73,7 +73,7 @@ class WallaceTreeStrategy(
     ABC
 ):
 
-    def multiply(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W = None) -> Sequence[T]:
+    def multiply(self, factor_1: Sequence[T], factor_2: Sequence[T], writer: W) -> Sequence[T]:
         products = self._weighted_product(factor_1, factor_2, writer)
         grouped_products = utils.group(products)
 

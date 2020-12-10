@@ -3,7 +3,7 @@ from hypothesis import given, assume
 from hypothesis.strategies import integers
 
 from gen_factor_sat import utils
-from gen_factor_sat.factoring_sat import ConstantFactoringStrategy
+from gen_factor_sat.factoring import ConstantFactoringStrategy
 
 
 @pytest.fixture()
@@ -64,7 +64,7 @@ def test_n_bit_adder(tseitin_circuit, x, y, c):
     bin_xs = utils.to_bin_list(x)
     bin_ys = utils.to_bin_list(y)
 
-    bin_result = tseitin_circuit.n_bit_adder(bin_xs, bin_ys, c)
+    bin_result = tseitin_circuit.n_bit_adder(bin_xs, bin_ys, c, None)
 
     assert len(bin_result) == max(len(bin_xs), len(bin_ys)) + 1
     assert utils.to_int(bin_result) == x + y + int(c)
@@ -76,7 +76,7 @@ def test_subtract(tseitin_circuit, x, y):
     bin_xs = utils.to_bin_list(x)
     bin_ys = utils.to_bin_list(y)
 
-    bin_result = tseitin_circuit.subtract(bin_xs, bin_ys)
+    bin_result = tseitin_circuit.subtract(bin_xs, bin_ys, None)
 
     assert len(bin_result) == max(len(bin_xs), len(bin_ys))
     assert utils.to_int(bin_result) == x - y
@@ -87,7 +87,7 @@ def test_n_bit_equality(tseitin_circuit, x, y):
     bin_xs = utils.to_bin_list(x)
     bin_ys = utils.to_bin_list(y)
 
-    bin_result = tseitin_circuit.n_bit_equality(bin_xs, bin_ys)
+    bin_result = tseitin_circuit.n_bit_equality(bin_xs, bin_ys, None)
 
     assert (bin_result == '1') == (x == y)
 
@@ -97,7 +97,7 @@ def test_align(tseitin_circuit, xs, ys):
     bin_xs = utils.to_bin_list(xs)
     bin_ys = utils.to_bin_list(ys)
 
-    aligned_xs, aligned_ys = tseitin_circuit.align(bin_xs, bin_ys)
+    aligned_xs, aligned_ys = tseitin_circuit.align(bin_xs, bin_ys, None)
 
     assert len(aligned_xs) == max(len(bin_xs), len(bin_ys))
     assert len(aligned_ys) == max(len(bin_xs), len(bin_ys))
@@ -110,7 +110,7 @@ def test_align(tseitin_circuit, xs, ys):
 def test_shift(tseitin_circuit, xs, shifts):
     bin_xs = utils.to_bin_list(xs)
 
-    shifted_xs = tseitin_circuit.shift(bin_xs, shifts)
+    shifted_xs = tseitin_circuit.shift(bin_xs, shifts, None)
 
     assert len(shifted_xs) == len(bin_xs) + shifts
     assert utils.to_int(shifted_xs) == (2 ** shifts) * xs
