@@ -54,7 +54,9 @@ def test_prime_number(prime):
     formula = CNF(from_clauses=factor_sat.clauses)
 
     with Solver(name='cadical', bootstrap_with=formula) as solver:
-        assert not solver.solve(), "The formula generated for a prime number should be in UNSAT"
+        result = solver.solve()
+        assert result is not None, "The solver should terminate"
+        assert not result, "The formula generated for a prime number should be in UNSAT"
 
 
 @given(integers(min_value=2, max_value=2 ** 25))
