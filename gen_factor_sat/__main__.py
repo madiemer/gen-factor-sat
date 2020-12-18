@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 
 from gen_factor_sat import factoring_sat
 
@@ -26,6 +27,11 @@ def write_cnf(cnf, filename, default_file):
     else:
         if not filename:
             filename = default_file
+        elif not os.path.isfile(filename):
+            if not os.path.exists(filename):
+                os.makedirs(filename)
+
+            filename = os.path.join(filename, default_file)
 
         with open(filename, 'w') as file:
             file.write(cnf.to_dimacs())

@@ -39,6 +39,8 @@ def test_composite_number(x, y):
         result_a = assignment_to_int(factor_sat.factor_1, model)
         result_b = assignment_to_int(factor_sat.factor_2, model)
 
+        assert result_a != 1 and result_a != x * y, "Factor 1 should be a non trivial factor"
+        assert result_b != 1 and result_b != x * y, "Factor 1 should be a non trivial factor"
         assert result_a * result_b == x * y, "Result a and b should contain all factors of x and y"
 
 
