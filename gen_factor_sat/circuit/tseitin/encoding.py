@@ -1,17 +1,19 @@
 from typing import Union, Set, FrozenSet, List, NewType
 
-Constant = NewType('Constant', str)
+from gen_factor_sat.circuit.default.circuit import Constant
+
+# Constant = NewType('Constant', str)
 Variable = NewType('Variable', int)
 Symbol = Union[Constant, Variable]
 
 Clause = FrozenSet[int]
 
 
-def constant(bin_str: str) -> Constant:
-    if bin_str == '0' or bin_str == '1':
-        return Constant(bin_str)
-    else:
-        raise ValueError('{0} is no constant'.format(bin_str))
+# def constant(bin_str: str) -> Constant:
+#     if bin_str == '0' or bin_str == '1':
+#         return Constant(bin_str)
+#     else:
+#         raise ValueError('{0} is no constant'.format(bin_str))
 
 
 def variable(var_id: int) -> Variable:

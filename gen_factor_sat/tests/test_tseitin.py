@@ -2,15 +2,15 @@ import itertools
 
 import pytest
 
-from gen_factor_sat import tseitin_encoding
+import gen_factor_sat.circuit.tseitin.encoding as te
 
 
 @pytest.mark.parametrize('variables', [[1, 2, 3]])
 @pytest.mark.parametrize('tseitin, bool_expr', [
-    (tseitin_encoding.and_equality, lambda x, y, z: (x and y) == z),
-    (tseitin_encoding.or_equality, lambda x, y, z: (x or y) == z),
-    (tseitin_encoding.xor_equality, lambda x, y, z: (x ^ y) == z),
-    (tseitin_encoding.equal_equality, lambda x, y, z: (x == y) == z)
+    (te.and_equality, lambda x, y, z: (x and y) == z),
+    (te.or_equality, lambda x, y, z: (x or y) == z),
+    (te.xor_equality, lambda x, y, z: (x ^ y) == z),
+    (te.equal_equality, lambda x, y, z: (x == y) == z)
 ])
 def test_clause_assignments(variables, tseitin, bool_expr):
     check_assignments(variables, tseitin(*variables), bool_expr)

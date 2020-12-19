@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Iterable, List, Tuple, DefaultDict, TypeVar
 
-from gen_factor_sat.tseitin_encoding import Constant, constant
+from gen_factor_sat.circuit.default.circuit import Constant, constant
 
 
 def to_bin_list(value) -> List[Constant]:

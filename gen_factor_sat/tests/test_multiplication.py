@@ -5,8 +5,8 @@ from pysat.formula import CNF
 from pysat.solvers import Solver
 
 from gen_factor_sat import utils
-from gen_factor_sat.factoring import ConstantFactoringStrategy, TseitinFactoringStrategy
-from gen_factor_sat.tseitin_strategies import CNFBuilder
+from gen_factor_sat.circuit.instances import ConstantFactoringStrategy, TseitinFactoringStrategy
+from gen_factor_sat.circuit.tseitin.circuit import CNFBuilder
 
 
 @pytest.fixture(scope='module')

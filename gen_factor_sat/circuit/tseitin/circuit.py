@@ -1,9 +1,10 @@
 from abc import ABC
-from typing import List, TypeVar, Callable, Set, Tuple, cast
+from typing import List, TypeVar, Set, cast
 
-from gen_factor_sat import tseitin_encoding
-from gen_factor_sat.circuit import GateStrategy, GeneralSimpleCircuitStrategy
-from gen_factor_sat.tseitin_encoding import Symbol, Constant, Variable, constant, variable, Clause
+import gen_factor_sat.circuit.tseitin.encoding as te
+from gen_factor_sat.circuit.default.circuit import Constant, constant, GeneralSimpleCircuitStrategy
+from gen_factor_sat.circuit.interface.circuit import GateStrategy
+from gen_factor_sat.circuit.tseitin.encoding import Symbol, Variable, variable, Clause
 
 T = TypeVar('T')
 
@@ -14,7 +15,7 @@ class CNFBuilder:
         self.__clauses = set()
 
     def build_clauses(self) -> Set[Clause]:
-        return set(filter(tseitin_encoding.is_no_tautology, self.__clauses))
+        return set(filter(te.is_no_tautology, self.__clauses))
 
     def from_tseitin(self, tseitin_transformation, *args) -> Variable:
         output = self.next_variable()
@@ -39,13 +40,13 @@ class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
 
     def assume(self, symbol: Symbol, value: Constant, writer: CNFBuilder) -> Constant:
         if self.is_constant(symbol) and symbol != value:
-            writer.append_clauses({tseitin_encoding.empty_clause()})
+            writer.append_clauses({te.empty_clause()})
         elif not self.is_constant(symbol):
             var = cast(Variable, symbol)  # Type hint
             if value == self.one:
-                writer.append_clauses({tseitin_encoding.unit_clause(var)})
+                writer.append_clauses({te.unit_clause(var)})
             else:
-                writer.append_clauses({tseitin_encoding.unit_clause(variable(-var))})
+                writer.append_clauses({te.unit_clause(variable(-var))})
 
         return value
 
@@ -53,13 +54,13 @@ class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
         if self.is_constant(input_1) or self.is_constant(input_2):
             return self._constant_and(input_1, input_2)
         else:
-            return writer.from_tseitin(tseitin_encoding.and_equality, input_1, input_2)
+            return writer.from_tseitin(te.and_equality, input_1, input_2)
 
     def wire_or(self, input_1: Symbol, input_2: Symbol, writer: CNFBuilder) -> Symbol:
         if self.is_constant(input_1) or self.is_constant(input_2):
             return self._constant_or(input_1, input_2)
         else:
-            return writer.from_tseitin(tseitin_encoding.or_equality, input_1, input_2)
+            return writer.from_tseitin(te.or_equality, input_1, input_2)
 
     def wire_not(self, input: Symbol, writer: CNFBuilder) -> Symbol:
         if self.is_constant(input):
@@ -103,7 +104,7 @@ class TseitinCircuitStrategy(GeneralSimpleCircuitStrategy[Symbol, CNFBuilder], A
         if self.is_constant(x) or self.is_constant(y):
             return self._constant_xor(x, y, writer)
         else:
-            return writer.from_tseitin(tseitin_encoding.xor_equality, x, y)
+            return writer.from_tseitin(te.xor_equality, x, y)
 
     # def equality(self, x: Symbol, y: Symbol) -> Symbol:
     #     if _is_constant(x):

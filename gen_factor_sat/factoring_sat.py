@@ -6,9 +6,9 @@ from random import Random
 from typing import List, Set, Optional, Tuple, cast
 
 from gen_factor_sat import utils
-from gen_factor_sat.factoring import TseitinFactoringStrategy
-from gen_factor_sat.tseitin_encoding import Clause, Symbol, Variable
-from gen_factor_sat.tseitin_strategies import CNFBuilder
+from gen_factor_sat.circuit.instances import TseitinFactoringStrategy
+from gen_factor_sat.circuit.tseitin.encoding import Clause, Symbol, Variable
+from gen_factor_sat.circuit.tseitin.circuit import CNFBuilder
 
 
 @dataclass

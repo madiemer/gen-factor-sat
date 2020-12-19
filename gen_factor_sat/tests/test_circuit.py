@@ -3,7 +3,7 @@ from hypothesis import given, assume
 from hypothesis.strategies import integers
 
 from gen_factor_sat import utils
-from gen_factor_sat.factoring import ConstantFactoringStrategy
+from gen_factor_sat.circuit.instances import ConstantFactoringStrategy
 
 
 @pytest.fixture()
