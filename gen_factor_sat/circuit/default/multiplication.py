@@ -5,7 +5,7 @@ from typing import List, Tuple, Generic, TypeVar
 
 from gen_factor_sat import utils
 from gen_factor_sat.circuit.interface.circuit import GateStrategy, SimpleCircuitStrategy, NBitCircuitStrategy
-from gen_factor_sat.circuit.interface.multiplication import MultiplicationStrategy, RecursiveMultiplicationStrategy
+from gen_factor_sat.circuit.interface.multiplication import MultiplicationStrategy
 
 T = TypeVar('T')
 W = TypeVar('W')
@@ -15,12 +15,12 @@ class KaratsubaStrategy(
     Generic[T, W],
     GateStrategy[T, W],
     NBitCircuitStrategy[T, W],
-    RecursiveMultiplicationStrategy[T, W],
+    MultiplicationStrategy[T, W],  # Extend a multiplication strategy
     ABC
 ):
     min_len: int = 20
 
-    def multiply_recursive(self, factor_1: List[T], factor_2: List[T], writer: W) -> List[T]:
+    def multiply(self, factor_1: List[T], factor_2: List[T], writer: W) -> List[T]:
         normalized_factor_1 = self.normalize(factor_1)
         normalized_factor_2 = self.normalize(factor_2)
         max_factor_length = max(len(normalized_factor_1), len(normalized_factor_2))
@@ -28,7 +28,7 @@ class KaratsubaStrategy(
         if (not normalized_factor_1) or (not normalized_factor_2):
             return [self.zero]
         elif max_factor_length <= self.min_len:
-            return self.multiply(normalized_factor_1, normalized_factor_2, writer)
+            return super(KaratsubaStrategy, self).multiply(normalized_factor_1, normalized_factor_2, writer)
         else:
             half_factor_length = (max_factor_length + 1) // 2
 
