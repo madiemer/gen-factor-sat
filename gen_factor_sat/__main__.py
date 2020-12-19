@@ -4,19 +4,32 @@ import os
 
 from gen_factor_sat import factoring_sat
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description='''
+    Convert the factorization of a number into a CNF. 
+    The resulting CNF is represented in the DIMACS format.
+    ''')
 
 commands = ['number', 'random']
 subparsers = parser.add_subparsers(dest='command', required=True)
 
-parser_number = subparsers.add_parser(commands[0])
-parser_number.add_argument('value', type=int)
-parser_number.add_argument('-o', '--outfile', nargs='?', type=str, const='', default='-')
+parser_number = subparsers.add_parser(commands[0], help="specify a number to be factorized")
+parser_number.add_argument('value', type=int, help="the number to be factorized")
+parser_number.add_argument('-o', '--outfile', nargs='?', type=str, const='', default='-',
+                           help='''
+                           redirect the output to the specified file. If no filename or a directory is
+                           specified, a default name is used.
+                           ''')
 
-parser_random = subparsers.add_parser(commands[1])
-parser_random.add_argument('-s', '--seed', nargs='?', type=int)
-parser_random.add_argument('max_value', metavar='max-value', type=int)
-parser_random.add_argument('-o', '--outfile', nargs='?', type=str, const='', default='-')
+parser_random = subparsers.add_parser(commands[1], help="generate a random number to be factorized")
+parser_random.add_argument('-s', '--seed', nargs='?', type=int, help='use the seed to generate a pseudorandom number')
+parser_random.add_argument('max_value', metavar='max-value', type=int,
+                           help='the largest value the random number can take (Not included).')
+parser_random.add_argument('-o', '--outfile', nargs='?', type=str, const='', default='-',
+                           help='''
+                           redirect the output to the specified file. If no filename or a directory is
+                           specified, a default name is used.
+                           ''')
 
 args = parser.parse_args()
 
