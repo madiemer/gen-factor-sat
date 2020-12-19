@@ -5,10 +5,12 @@ import os
 from gen_factor_sat import factoring_sat
 
 parser = argparse.ArgumentParser(
+    prog='GenFactorSat',
     description='''
     Convert the factorization of a number into a CNF. 
     The resulting CNF is represented in the DIMACS format.
     ''')
+parser.add_argument('--version', action='version', version='%(prog)s v{0}'.format(factoring_sat.VERSION))
 
 commands = ['number', 'random']
 subparsers = parser.add_subparsers(dest='command', required=True)

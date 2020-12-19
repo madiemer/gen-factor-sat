@@ -7,8 +7,10 @@ from typing import List, Set, Optional, Tuple, cast
 
 from gen_factor_sat import utils
 from gen_factor_sat.circuit.instances import TseitinFactoringStrategy
-from gen_factor_sat.circuit.tseitin.encoding import Clause, Symbol, Variable
 from gen_factor_sat.circuit.tseitin.circuit import CNFBuilder
+from gen_factor_sat.circuit.tseitin.encoding import Clause, Symbol, Variable
+
+VERSION = '0.3'
 
 
 @dataclass
@@ -23,12 +25,14 @@ class FactoringSat:
 
     def to_dimacs(self):
         comments = []
+        comments.append('GenFactorSat v{0}'.format(VERSION))
+
         if self.max_value:
-            max_value = 'Random number in range: 2 - {0}'.format(self.max_value)
+            max_value = 'The number was (pseudo-) randomly chosen from the interval [2,{0})'.format(self.max_value)
             comments.append(max_value)
 
         if self.seed:
-            seed = 'Seed: {0}'.format(self.seed)
+            seed = 'To reproduce this results call: gen_factor_sat random -s {0} {1}'.format(self.seed, self.max_value)
             comments.append(seed)
 
         if comments:
@@ -37,7 +41,8 @@ class FactoringSat:
         number = 'Factorization of the number: {0}'.format(self.number)
         factor_1 = 'Factor 1 is encoded in the variables: {0}'.format(self.factor_1)
         factor_2 = 'Factor 2 is encoded in the variables: {0}'.format(self.factor_2)
-        comments.extend([number, factor_1, factor_2])
+        encoding = 'All numbers are encoded with [msb, ..., lsb]'
+        comments.extend([number, factor_1, factor_2, encoding])
 
         return cnf_to_dimacs(self.number_of_variables, self.clauses, comments=comments)
 

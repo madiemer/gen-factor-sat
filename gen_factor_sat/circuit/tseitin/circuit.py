@@ -69,25 +69,25 @@ class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
             var = cast(Variable, input)  # Type hint
             return variable(-var)
 
-    def _constant_and(self, x, y):
-        if x == self.zero or y == self.zero:
+    def _constant_and(self, input_1, input_2):
+        if input_1 == self.zero or input_2 == self.zero:
             return self.zero
-        elif x == self.one:
-            return y
-        elif y == self.one:
-            return x
+        elif input_1 == self.one:
+            return input_2
+        elif input_2 == self.one:
+            return input_1
         else:
-            raise ValueError('Neither {0} nor {1} is a constant'.format(x, y))
+            raise ValueError('Neither {0} nor {1} is a constant'.format(input_1, input_2))
 
-    def _constant_or(self, x, y):
-        if x == self.one or y == self.one:
+    def _constant_or(self, input_1, input_2):
+        if input_1 == self.one or input_2 == self.one:
             return self.one
-        if x == self.zero:
-            return y
-        elif y == self.zero:
-            return x
+        if input_1 == self.zero:
+            return input_2
+        elif input_2 == self.zero:
+            return input_1
         else:
-            raise ValueError('Neither {0} nor {1} is a constant'.format(x, y))
+            raise ValueError('Neither {0} nor {1} is a constant'.format(input_1, input_2))
 
     def _constant_not(self, x):
         if x == self.zero:
@@ -100,11 +100,11 @@ class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
 
 class TseitinCircuitStrategy(GeneralSimpleCircuitStrategy[Symbol, CNFBuilder], ABC):
 
-    def xor(self, x: Symbol, y: Symbol, writer: CNFBuilder) -> Symbol:
-        if self.is_constant(x) or self.is_constant(y):
-            return self._constant_xor(x, y, writer)
+    def xor(self, input_1: Symbol, input_2: Symbol, writer: CNFBuilder) -> Symbol:
+        if self.is_constant(input_1) or self.is_constant(input_2):
+            return self._constant_xor(input_1, input_2, writer)
         else:
-            return writer.from_tseitin(te.xor_equality, x, y)
+            return writer.from_tseitin(te.xor_equality, input_1, input_2)
 
     # def equality(self, x: Symbol, y: Symbol) -> Symbol:
     #     if _is_constant(x):
@@ -116,14 +116,14 @@ class TseitinCircuitStrategy(GeneralSimpleCircuitStrategy[Symbol, CNFBuilder], A
     #         self.gate_builder.cnf_builder.append_clauses(tseitin.equal_equality(x, y, z))
     #         return z
 
-    def _constant_xor(self, x, y, writer: CNFBuilder):
-        if x == self.one:
-            return self.wire_not(y, writer)
-        elif y == self.one:
-            return self.wire_not(x, writer)
-        elif x == self.zero:
-            return y
-        elif y == self.zero:
-            return x
+    def _constant_xor(self, input_1, input_2, writer: CNFBuilder):
+        if input_1 == self.one:
+            return self.wire_not(input_2, writer)
+        elif input_2 == self.one:
+            return self.wire_not(input_1, writer)
+        elif input_1 == self.zero:
+            return input_2
+        elif input_2 == self.zero:
+            return input_1
         else:
-            raise ValueError('Neither {0} nor {1} is a constant'.format(x, y))
+            raise ValueError('Neither {0} nor {1} is a constant'.format(input_1, input_2))
