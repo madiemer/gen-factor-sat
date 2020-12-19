@@ -35,16 +35,16 @@ class KaratsubaStrategy(
             f1_high, f1_low = utils.split_at(normalized_factor_1, -half_factor_length)
             f2_high, f2_low = utils.split_at(normalized_factor_2, -half_factor_length)
 
-            result_low = self.multiply(f1_low, f2_low, writer)
-            result_high = self.multiply(f1_high, f2_high, writer)
+            result_low = self.multiply(f1_low, f2_low, writer) if f1_low and f2_low else []
+            result_high = self.multiply(f1_high, f2_high, writer) if f1_high and f2_high else []
 
             # result_mid = karatsuba((f1_high + f1_low), (f2_high + f2_low)) - result_high - result_low
-            factor_1_sum = self.n_bit_adder(f1_high, f1_low, self.zero, writer)
-            factor_2_sum = self.n_bit_adder(f2_high, f2_low, self.zero, writer)
+            factor_1_sum = self.n_bit_adder(f1_high, f1_low, self.zero, writer) if f1_high else f1_low
+            factor_2_sum = self.n_bit_adder(f2_high, f2_low, self.zero, writer) if f2_high else f2_low
 
             result_mid = self.multiply(factor_1_sum, factor_2_sum, writer)
-            result_mid = self.subtract(result_mid, result_high, writer)
-            result_mid = self.subtract(result_mid, result_low, writer)
+            result_mid = self.subtract(result_mid, result_high, writer) if result_high else result_mid
+            result_mid = self.subtract(result_mid, result_low, writer) if result_low else result_mid
 
             # result = result_high * 2^(2 * half_factor_length) + result_mid * 2^(half_factor_length) + result_low
             shifted_high = self.shift(result_high, half_factor_length, writer)
