@@ -24,7 +24,11 @@ parser_number.add_argument('-o', '--outfile', nargs='?', type=str, const='', def
                            ''')
 
 parser_random = subparsers.add_parser(commands[1], help="generate a random number to be factorized")
-parser_random.add_argument('-s', '--seed', nargs='?', type=int, help='use the seed to generate a pseudorandom number')
+parser_random.add_argument('max_value', metavar='max-value', type=int,
+                           help='the largest value the random number can take.')
+parser_random.add_argument('-m', '--min-value', dest='min_value', type=int, default=2,
+                           help='the smallest value the random number can take. (default: 2)')
+parser_random.add_argument('-s', '--seed', type=int, help='use the seed to generate a pseudorandom number')
 parser_random.add_argument('--prime', dest='prime', action='store_true', default=None,
                            help='''generate a prime number''')
 parser_random.add_argument('--no-prime', dest='prime', action='store_false', default=None,
@@ -34,8 +38,6 @@ parser_random.add_argument('-e', '--error', type=float, default=0.0,
                            the probability that a composite number is declared to be a prime number.
                            If set to 0 a deterministic but slower primality test is used. (default: 0.0)
                            ''')
-parser_random.add_argument('max_value', metavar='max-value', type=int,
-                           help='the largest value the random number can take.')
 parser_random.add_argument('-o', '--outfile', nargs='?', type=str, const='', default='-',
                            help='''
                            redirect the output from stdout to the specified file. If no filename or a directory is
@@ -67,7 +69,14 @@ if args.command == commands[0]:
     write_cnf(result, args.outfile, default)
 
 elif args.command == commands[1]:
-    result = factoring_sat.factorize_random_number(args.max_value, args.seed, args.prime, args.error)
+    result = factoring_sat.factorize_random_number(
+        max_value=args.max_value,
+        min_value=args.min_value,
+        seed=args.seed,
+        prime=args.prime,
+        error=args.error
+    )
+
     default = 'factor_seed{0}_maxn{1}.cnf'.format(result.seed, result.max_value)
     write_cnf(result, args.outfile, default)
 

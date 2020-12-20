@@ -1,7 +1,7 @@
 from collections import Counter
 
 import pytest
-from hypothesis import given
+from hypothesis import given, assume
 from hypothesis.strategies import integers, booleans, floats
 from pysat.formula import CNF
 from pysat.solvers import Solver
@@ -18,23 +18,29 @@ def test_reproducibility(number):
     assert factoring_1 == factoring_2
 
 
-@given(integers(min_value=2, max_value=2 ** 40), integers())
-def test_seeded_reproducibility(max_value, seed):
-    number_1 = factorize_random_number(max_value, seed)
-    number_2 = factorize_random_number(max_value, seed)
+@given(
+    max_value=integers(min_value=2, max_value=2 ** 40),
+    min_value=integers(min_value=2, max_value=2 ** 20),
+    seed=integers())
+def test_seeded_reproducibility(max_value, min_value, seed):
+    assume(min_value <= max_value)
+    number_1 = factorize_random_number(max_value, min_value, seed)
+    number_2 = factorize_random_number(max_value, min_value, seed)
 
     assert number_1 == number_2
 
 
 @given(
     max_value=integers(min_value=10, max_value=2 ** 40),
+    min_value=integers(min_value=2, max_value=2 ** 10),
     seed=integers(),
     prime=booleans(),
     error=floats(min_value=0.0, max_value=1.0)
 )
-def test_seeded_prime_reproducibility(max_value, seed, prime, error):
-    number_1 = factorize_random_number(max_value, seed, prime, error)
-    number_2 = factorize_random_number(max_value, seed, prime, error)
+def test_seeded_prime_reproducibility(max_value, min_value, seed, prime, error):
+    assume(min_value <= max_value - 10)
+    number_1 = factorize_random_number(max_value, min_value, seed, prime, error)
+    number_2 = factorize_random_number(max_value, min_value, seed, prime, error)
 
     assert number_1 == number_2
 

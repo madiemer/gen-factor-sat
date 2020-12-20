@@ -21,6 +21,7 @@ class FactoringSat:
     number_of_variables: int
     clauses: Set[Clause]
     max_value: Optional[int] = None
+    min_value: Optional[int] = None
     seed: Optional[int] = None
     prime: Optional[bool] = None
     error: float = 0.0
@@ -30,10 +31,13 @@ class FactoringSat:
         comments.append('GenFactorSat v{0}'.format(VERSION))
 
         if self.max_value:
-            max_value = 'The number was (pseudo-) randomly chosen from the interval [2,{0})'.format(self.max_value)
+            max_value = 'The number was (pseudo-) randomly chosen from the interval [{0},{1}]' \
+                .format(self.min_value, self.max_value)
+
             comments.append(max_value)
 
             command = 'gen_factor_sat random'
+            min_value_opt = '--min-value {0}'.format(self.min_value)
             seed_opt = '--seed {0}'.format(self.seed) if self.seed else ''
             if self.prime is not None:
                 prime_opt = '--prime' if self.prime else '--no-prime'
@@ -44,7 +48,7 @@ class FactoringSat:
 
             max_value_arg = str(self.max_value)
 
-            reproduce = ' '.join(filter(bool, [command, seed_opt, prime_opt, error_opt, max_value_arg]))
+            reproduce = ' '.join(filter(bool, [command, min_value_opt, seed_opt, prime_opt, error_opt, max_value_arg]))
         else:
             reproduce = 'gen_factor_sat number {0}'.format(self.number)
 
@@ -60,15 +64,17 @@ class FactoringSat:
         return cnf_to_dimacs(self.number_of_variables, self.clauses, comments=comments)
 
 
-def factorize_random_number(max_value: int, seed: Optional[int], prime: Optional[bool] = None,
+def factorize_random_number(max_value: int, min_value: int = 2, seed: Optional[int] = None,
+                            prime: Optional[bool] = None,
                             error=0.0) -> FactoringSat:
     if seed is None:
         seed = random.randrange(sys.maxsize)
 
-    number = _generate_number(max_value=max_value, seed=seed, prime=prime, error=error)
+    number = _generate_number(max_value=max_value, min_value=min_value, seed=seed, prime=prime, error=error)
     factor_sat = factorize_number(number)
     factor_sat.seed = seed
     factor_sat.max_value = max_value
+    factor_sat.min_value = min_value
     factor_sat.prime = prime
     factor_sat.error = error
 
@@ -105,6 +111,7 @@ def factorize_number(number: int) -> FactoringSat:
 
 def _generate_number(
         max_value: int,
+        min_value: int,
         seed: int,
         prime: Optional[bool] = None,
         error: Optional[float] = None,
@@ -119,7 +126,7 @@ def _generate_number(
         if iteration > max_tries:
             raise ValueError("Cannot find a satisfying assignment within {0} tries".format(max_tries))
 
-        number = rand.randint(2, max_value)
+        number = rand.randint(min_value, max_value)
 
         if prime is not None:
             if error is None or error <= 0.0:
