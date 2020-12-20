@@ -77,7 +77,18 @@ elif args.command == commands[1]:
         error=args.error
     )
 
-    default = 'factor_seed{0}_maxn{1}.cnf'.format(result.seed, result.max_value)
+    if result.prime:
+        if result.error > 0.0:
+            number_type = 'prob-prime'
+        else:
+            number_type = 'prime'
+
+    elif result.prime is not None:
+        number_type = 'composite'
+    else:
+        number_type = 'random'
+
+    default = 'factor_seed{0}_minn{1}_maxn{2}_{3}.cnf'.format(result.seed, result.min_value, result.max_value, number_type)
     write_cnf(result, args.outfile, default)
 
 else:

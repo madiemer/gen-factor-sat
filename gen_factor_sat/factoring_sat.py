@@ -31,10 +31,20 @@ class FactoringSat:
         comments.append('GenFactorSat v{0}'.format(VERSION))
 
         if self.max_value:
-            max_value = 'The number was (pseudo-) randomly chosen from the interval [{0},{1}]' \
-                .format(self.min_value, self.max_value)
+            interval = '[{0}, {1}]'.format(self.min_value, self.max_value)
+            comments.append('The number was (pseudo-) randomly chosen from the interval: ' + interval)
 
-            comments.append(max_value)
+            if self.prime is not None:
+                if self.prime and self.error > 0.0:
+                    number_type = 'The number is a prime number with an error probability less or equal to {0}.'\
+                        .format(self.error)
+                elif self.prime and self.error <= 0.0:
+                    number_type = 'The number is a prime number.'
+                else:
+                    number_type = 'The number is a composite number.'
+
+                comments.append(number_type)
+
 
             command = 'gen_factor_sat random'
             min_value_opt = '--min-value {0}'.format(self.min_value)
