@@ -1,7 +1,7 @@
+import math
 import random
 import sys
 from dataclasses import dataclass
-from math import ceil
 from random import Random
 from typing import List, Set, Optional, Tuple, cast
 
@@ -22,6 +22,8 @@ class FactoringSat:
     clauses: Set[Clause]
     max_value: Optional[int] = None
     seed: Optional[int] = None
+    prime: Optional[bool] = None
+    error: float = 0.0
 
     def to_dimacs(self):
         comments = []
@@ -31,12 +33,23 @@ class FactoringSat:
             max_value = 'The number was (pseudo-) randomly chosen from the interval [2,{0})'.format(self.max_value)
             comments.append(max_value)
 
-        if self.seed:
-            seed = 'To reproduce this results call: gen_factor_sat random -s {0} {1}'.format(self.seed, self.max_value)
-            comments.append(seed)
+            command = 'gen_factor_sat random'
+            seed_opt = '--seed {0}'.format(self.seed) if self.seed else ''
+            if self.prime is not None:
+                prime_opt = '--prime' if self.prime else '--no-prime'
+                error_opt = '--error {0}'.format(self.error) if self.error > 0.0 else ''
+            else:
+                prime_opt = ''
+                error_opt = ''
 
-        if comments:
-            comments.append('')
+            max_value_arg = str(self.max_value)
+
+            reproduce = ' '.join(filter(bool, [command, seed_opt, prime_opt, error_opt, max_value_arg]))
+        else:
+            reproduce = 'gen_factor_sat number {0}'.format(self.number)
+
+        comments.append('To reproduce this results call: ' + reproduce)
+        comments.append('')
 
         number = 'Factorization of the number: {0}'.format(self.number)
         factor_1 = 'Factor 1 is encoded in the variables: {0}'.format(self.factor_1)
@@ -47,14 +60,17 @@ class FactoringSat:
         return cnf_to_dimacs(self.number_of_variables, self.clauses, comments=comments)
 
 
-def factorize_random_number(max_value: int, seed: Optional[int]) -> FactoringSat:
+def factorize_random_number(max_value: int, seed: Optional[int], prime: Optional[bool] = None,
+                            error=0.0) -> FactoringSat:
     if seed is None:
         seed = random.randrange(sys.maxsize)
 
-    number = _generate_number(max_value=max_value, seed=seed)
+    number = _generate_number(max_value=max_value, seed=seed, prime=prime, error=error)
     factor_sat = factorize_number(number)
     factor_sat.seed = seed
     factor_sat.max_value = max_value
+    factor_sat.prime = prime
+    factor_sat.error = error
 
     return factor_sat
 
@@ -87,13 +103,71 @@ def factorize_number(number: int) -> FactoringSat:
     )
 
 
-def _generate_number(max_value, seed: int) -> int:
+def _generate_number(
+        max_value: int,
+        seed: int,
+        prime: Optional[bool] = None,
+        error: Optional[float] = None,
+        max_tries: int = 100) -> int:
     rand = Random(seed)
-    return rand.randint(2, max_value)
+
+    number = 0
+    prime_check = None
+    iteration = 0
+    while number < 2 or prime != prime_check:
+        iteration += 1
+        if iteration > max_tries:
+            raise ValueError("Cannot find a satisfying assignment within {0} tries".format(max_tries))
+
+        number = rand.randint(2, max_value)
+
+        if prime is not None:
+            if error is None or error <= 0.0:
+                prime_check = is_prime(number)
+            else:
+                prime_check = is_prob_prime(number, error, seed)
+
+    return number
+
+
+def is_prime(number):
+    if number == 2:
+        return True
+    else:
+        return all(number % x != 0 for x in range(2, math.ceil(math.sqrt(number)) + 1))
+
+
+def is_prob_prime(number, error, seed):
+    rand = Random(seed)
+
+    iterations = math.ceil(-math.log(error) / math.log(4))
+    for iteration in range(0, iterations):
+        a = rand.randrange(1, number)
+        if not miller_rabin(number, a):
+            return False
+
+    return True
+
+
+def miller_rabin(number, a):
+    d = 1
+    dd = 1
+
+    for b in bin(number - 1)[2:]:
+        d = d * d % number
+        if d == 1 and dd != 1 and dd != number - 1:
+            return False
+
+        if b == '1':
+            d = d * a % number
+
+        dd = d
+
+    return d == 1
 
 
 def _factor_lengths(number_length: int) -> Tuple[int, int]:
-    factor_length_1 = ceil(number_length / 2)
+    factor_length_1 = math.ceil(number_length / 2)
     factor_length_2 = number_length - 1
 
     return factor_length_1, factor_length_2

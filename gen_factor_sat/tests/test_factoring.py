@@ -2,7 +2,7 @@ from collections import Counter
 
 import pytest
 from hypothesis import given
-from hypothesis.strategies import integers
+from hypothesis.strategies import integers, booleans, floats
 from pysat.formula import CNF
 from pysat.solvers import Solver
 
@@ -22,6 +22,19 @@ def test_reproducibility(number):
 def test_seeded_reproducibility(max_value, seed):
     number_1 = factorize_random_number(max_value, seed)
     number_2 = factorize_random_number(max_value, seed)
+
+    assert number_1 == number_2
+
+
+@given(
+    max_value=integers(min_value=10, max_value=2 ** 40),
+    seed=integers(),
+    prime=booleans(),
+    error=floats(min_value=0.0, max_value=1.0)
+)
+def test_seeded_prime_reproducibility(max_value, seed, prime, error):
+    number_1 = factorize_random_number(max_value, seed, prime, error)
+    number_2 = factorize_random_number(max_value, seed, prime, error)
 
     assert number_1 == number_2
 
