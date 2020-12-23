@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from gen_factor_sat import factoring_sat
+from gen_factor_sat import factoring_sat, number_generator
 
 parser = argparse.ArgumentParser(
     prog='GenFactorSat',
@@ -38,6 +38,10 @@ parser_random.add_argument('-e', '--error', type=float, default=0.0,
                            the probability that a composite number is declared to be a prime number.
                            If set to 0 a deterministic but slower primality test is used. (default: 0.0)
                            ''')
+parser_random.add_argument('-t', '--tries', type=int, default=1000,
+                           help='''
+                           the number of tries to generate a number with the specified properties. (default: 100)
+                           ''')
 parser_random.add_argument('-o', '--outfile', nargs='?', type=str, const='', default='-',
                            help='''
                            redirect the output from stdout to the specified file. If no filename or a directory is
@@ -69,26 +73,26 @@ if args.command == commands[0]:
     write_cnf(result, args.outfile, default)
 
 elif args.command == commands[1]:
+    expected_type = number_generator.create_number_type(args.prime, args.error)
+
     result = factoring_sat.factorize_random_number(
         max_value=args.max_value,
         min_value=args.min_value,
         seed=args.seed,
-        prime=args.prime,
-        error=args.error
+        max_tries=args.tries,
+        number_type=expected_type
     )
 
-    if result.prime:
-        if result.error > 0.0:
-            number_type = 'prob-prime'
-        else:
-            number_type = 'prime'
+    expected_type = number_generator.fold_number_type(
+        result.number.number_type,
+        f_prime='prime',
+        f_prob_prime='prob-prime',
+        f_comp='composite',
+        f_prob_comp=lambda x:'composite',
+        f_unknown='random'
+    )
 
-    elif result.prime is not None:
-        number_type = 'composite'
-    else:
-        number_type = 'random'
-
-    default = 'factor_seed{0}_minn{1}_maxn{2}_{3}.cnf'.format(result.seed, result.min_value, result.max_value, number_type)
+    default = 'factor_seed{0}_minn{1}_maxn{2}_{3}.cnf'.format(result.seed, result.min_value, result.max_value, expected_type)
     write_cnf(result, args.outfile, default)
 
 else:
