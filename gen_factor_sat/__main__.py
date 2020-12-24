@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from gen_factor_sat import factoring_sat, number_generator
+from gen_factor_sat.factoring_sat import FactoringSat
 
 parser = argparse.ArgumentParser(
     prog='GenFactorSat',
@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(
     Convert the factorization of a number into a CNF. 
     The resulting CNF is represented in the DIMACS format.
     ''')
-parser.add_argument('--version', action='version', version='%(prog)s v{0}'.format(factoring_sat.VERSION))
+parser.add_argument('--version', action='version', version='%(prog)s v{0}'.format(FactoringSat.VERSION))
 
 commands = ['number', 'random']
 subparsers = parser.add_subparsers(dest='command', required=True)
@@ -68,12 +68,12 @@ def write_cnf(cnf, filename, default_file):
 
 
 if args.command == commands[0]:
-    result = factoring_sat.factorize_number(args.value)
+    result = FactoringSat.factorize_number(args.value)
     default = 'factor_number{0}.cnf'.format(result.number)
     write_cnf(result, args.outfile, default)
 
 elif args.command == commands[1]:
-    result = factoring_sat.factorize_random_number(
+    result = FactoringSat.factorize_random_number(
         max_value=args.max_value,
         min_value=args.min_value,
         seed=args.seed,
@@ -82,8 +82,7 @@ elif args.command == commands[1]:
         max_tries=args.tries
     )
 
-    number_type = number_generator.fold_number_type(
-        result.number,
+    number_type = result.number.fold_type(
         v_det_prime='prime',
         v_prob_prime='prob-prime',
         v_det_comp='composite',
