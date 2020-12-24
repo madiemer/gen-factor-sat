@@ -3,7 +3,7 @@ from gen_factor_sat.circuit.default.circuit import Constant, ConstantStrategy, G
 from gen_factor_sat.circuit.default.factoring import GeneralFactoringStrategy
 from gen_factor_sat.circuit.default.multiplication import WallaceTreeStrategy, KaratsubaStrategy
 from gen_factor_sat.circuit.tseitin.circuit import TseitinGateStrategy, CNFBuilder, TseitinCircuitStrategy
-from gen_factor_sat.circuit.tseitin.encoding import Symbol
+from gen_factor_sat.formula.symbol import Symbol
 
 
 class TseitinFactoringStrategy(

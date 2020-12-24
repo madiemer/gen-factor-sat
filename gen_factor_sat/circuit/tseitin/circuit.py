@@ -1,37 +1,13 @@
 from abc import ABC
-from typing import List, TypeVar, Set, cast
+from typing import TypeVar, cast
 
 import gen_factor_sat.circuit.tseitin.encoding as te
 from gen_factor_sat.circuit.default.circuit import Constant, constant, GeneralSimpleCircuitStrategy
 from gen_factor_sat.circuit.interface.circuit import GateStrategy
-from gen_factor_sat.circuit.tseitin.encoding import Symbol, Variable, variable, Clause
+from gen_factor_sat.formula.cnf import CNFBuilder
+from gen_factor_sat.formula.symbol import Symbol, Variable, variable
 
 T = TypeVar('T')
-
-
-class CNFBuilder:
-    def __init__(self, number_of_variables=0):
-        self.number_of_variables = number_of_variables
-        self.__clauses = set()
-
-    def build_clauses(self) -> Set[Clause]:
-        return set(filter(te.is_no_tautology, self.__clauses))
-
-    def from_tseitin(self, tseitin_transformation, *args) -> Variable:
-        output = self.next_variable()
-        clauses = tseitin_transformation(*args, output)
-        self.append_clauses(clauses)
-        return output
-
-    def next_variables(self, amount: int) -> List[Variable]:
-        return [self.next_variable() for _ in range(amount)]
-
-    def next_variable(self) -> Variable:
-        self.number_of_variables += 1
-        return variable(self.number_of_variables)
-
-    def append_clauses(self, clauses: Set[Clause]):
-        self.__clauses.update(clauses)
 
 
 class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):

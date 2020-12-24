@@ -1,26 +1,7 @@
-from typing import Union, Set, FrozenSet, List, NewType
+from typing import Set, List
 
-from gen_factor_sat.circuit.default.circuit import Constant
-
-# Constant = NewType('Constant', str)
-Variable = NewType('Variable', int)
-Symbol = Union[Constant, Variable]
-
-Clause = FrozenSet[int]
-
-
-# def constant(bin_str: str) -> Constant:
-#     if bin_str == '0' or bin_str == '1':
-#         return Constant(bin_str)
-#     else:
-#         raise ValueError('{0} is no constant'.format(bin_str))
-
-
-def variable(var_id: int) -> Variable:
-    if var_id != 0:
-        return Variable(var_id)
-    else:
-        raise ValueError('0 cannot be used as variable')
+from gen_factor_sat.formula.cnf import Clause
+from gen_factor_sat.formula.symbol import Variable
 
 
 def and_equality(input_1: Variable, input_2: Variable, output: Variable) -> Set[Clause]:
@@ -99,7 +80,3 @@ def unit_clause(literal: Variable) -> Clause:
 
 def empty_clause() -> Clause:
     return frozenset([])
-
-
-def is_no_tautology(clause: Clause) -> bool:
-    return all(-x not in clause for x in clause)

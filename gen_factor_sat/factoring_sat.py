@@ -9,10 +9,9 @@ from typing import List, Set, Optional, Tuple, cast
 from gen_factor_sat import utils
 from gen_factor_sat.circuit.instances import TseitinFactoringStrategy
 from gen_factor_sat.circuit.tseitin.circuit import CNFBuilder
-from gen_factor_sat.circuit.tseitin.encoding import Clause, Symbol, Variable
+from gen_factor_sat.formula.cnf import Clause, CNF
+from gen_factor_sat.formula.symbol import Symbol, Variable
 from gen_factor_sat.number_generator import Number
-
-
 
 
 @dataclass
@@ -21,8 +20,7 @@ class FactoringSat:
     number: Number
     factor_1: List[Variable]
     factor_2: List[Variable]
-    number_of_variables: int
-    clauses: Set[Clause]
+    cnf: CNF
     max_value: Optional[int] = None
     min_value: Optional[int] = None
     seed: Optional[int] = None
@@ -71,7 +69,7 @@ class FactoringSat:
         encoding = 'All numbers are encoded with [msb, ..., lsb]'
         comments.extend([number, factor_1, factor_2, encoding])
 
-        return cnf_to_dimacs(self.number_of_variables, self.clauses, comments=comments)
+        return self.cnf.to_dimacs(comments=comments)
 
     @staticmethod
     def factorize_random_number(
@@ -124,8 +122,7 @@ class FactoringSat:
             number=number,
             factor_1=factor_1,
             factor_2=factor_2,
-            number_of_variables=cnf_builder.number_of_variables,
-            clauses=cnf_builder.build_clauses()
+            cnf=cnf_builder.build()
         )
 
     @staticmethod
@@ -134,24 +131,3 @@ class FactoringSat:
         factor_length_2 = number_length - 1
 
         return factor_length_1, factor_length_2
-
-
-def cnf_to_dimacs(num_variables: int, clauses: Set[Clause], comments=None) -> str:
-    if (comments is None) or (not comments):
-        comment_lines = ''
-    else:
-        prefixed_comments = list(map('c {0}'.format, comments))
-        comment_lines = '\n'.join(prefixed_comments) + '\n'
-
-    problem = 'p cnf {0} {1}'.format(num_variables, len(clauses))
-    dimacs_clauses = list(map(clause_to_dimacs, clauses))
-    cnf_lines = '\n'.join([problem] + dimacs_clauses)
-
-    return comment_lines + cnf_lines
-
-
-def clause_to_dimacs(clause: Clause) -> str:
-    if not clause:
-        return '0'
-    else:
-        return ' '.join(map(str, clause)) + ' 0'

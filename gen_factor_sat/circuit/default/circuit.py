@@ -2,19 +2,10 @@ import functools
 import itertools
 import operator as op
 from abc import ABC
-from typing import List, Tuple, TypeVar, NewType
+from typing import List, Tuple, TypeVar
 
 from gen_factor_sat.circuit.interface.circuit import GateStrategy, SimpleCircuitStrategy, NBitCircuitStrategy
-
-Constant = NewType('Constant', str)
-
-
-def constant(bin_str: str) -> Constant:
-    if bin_str == '0' or bin_str == '1':
-        return Constant(bin_str)
-    else:
-        raise ValueError('{0} is no constant'.format(bin_str))
-
+from gen_factor_sat.formula.symbol import Constant, constant
 
 T = TypeVar('T')
 W = TypeVar('W')
