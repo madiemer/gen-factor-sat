@@ -1,125 +1,144 @@
+import functools
 import itertools
 import math
+from abc import ABC
 from dataclasses import dataclass
-from enum import Enum
 from random import Random
-from typing import Union, Optional
+from typing import Optional
+from gen_factor_sat import utils
 
-
-class NumberBaseType(Enum):
-    PRIME = 'prime'
-    COMPOSITE = 'composite'
-    UNKNOWN = 'random'
+@dataclass()
+class Number(ABC):
+    value: int
 
 
 @dataclass()
-class ProbableCheck:
+class Prime(Number, ABC):
+    pass
+
+
+@dataclass()
+class DetPrime(Prime):
+    pass
+
+
+@dataclass()
+class ProbPrime(Prime):
     error: float
 
 
 @dataclass()
-class DeterministicCheck:
+class Composite(Number, ABC):
     pass
 
 
-NumberCheckType = Union[DeterministicCheck, ProbableCheck, None]
+@dataclass()
+class ProbComposite(Composite):
+    error: float
 
 
 @dataclass()
-class NumberType:
-    number_base_type: NumberBaseType
-    number_check_type: NumberCheckType
+class DetComposite(Composite):
+    pass
 
 
 @dataclass()
-class Number:
-    value: int
-    number_type: NumberType
+class Unknown(Number):
+    pass
 
 
-def fold_number_type(number_type: NumberType, f_prime, f_prob_prime, f_comp, f_prob_comp, f_unknown):
-    if number_type.number_base_type == NumberBaseType.PRIME:
-        if isinstance(number_type.number_check_type, DeterministicCheck):
-            return f_prime
+def create_number(value: int, seed: int, error: float) -> Number:
+    if error > 0.0:
+        if is_prob_prime(value, error, seed):
+            return ProbPrime(value, error)
         else:
-            return f_prob_prime(number_type.number_check_type.error)
-
-    elif number_type.number_base_type == NumberBaseType.COMPOSITE:
-        if isinstance(number_type.number_check_type, DeterministicCheck):
-            return f_comp
+            return ProbComposite(value=value, error=error)
+    else:
+        if is_prime(value):
+            return DetPrime(value)
         else:
-            return f_prob_comp(number_type.number_check_type.error)
+            return DetComposite(value)
+
+
+def check_type(number: Number, prime: bool) -> bool:
+    if prime:
+        return isinstance(number, Prime)
     else:
-        return f_unknown
+        return isinstance(number, Composite)
 
 
-def create_number(value: int, number_check: NumberCheckType, seed: int) -> Number:
-    number_type = get_number_type(value, number_check, seed)
-    return Number(value, number_type)
-
-
-def get_number_type(value: int, number_check: NumberCheckType, seed: int):
-    if isinstance(number_check, DeterministicCheck):
-        prime_test_result = is_det_prime(value)
-    elif isinstance(number_check, ProbableCheck):
-        prime_test_result = is_prob_prime(value, seed, number_check.error)
+def fold_number(number: Number, f_det_prime, f_prob_prime, f_det_comp, f_prob_comp, f_unknown):
+    if isinstance(number, DetPrime):
+        return f_det_prime(number.value)
+    elif isinstance(number, ProbPrime):
+        return f_prob_prime(number.value, number.error)
+    elif isinstance(number, DetComposite):
+        return f_det_comp(number.value)
+    elif isinstance(number, ProbComposite):
+        return f_prob_comp(number.value, number.error)
+    elif isinstance(number, Unknown):
+        return f_unknown(number)
     else:
-        return NumberType(NumberBaseType.UNKOWN, number_check)
-
-    number_base_type = NumberBaseType.PRIME if prime_test_result else NumberBaseType.COMPOSITE
-    return NumberType(number_base_type, number_check)
+        raise ValueError('Unknown number type: ' + str(number))
 
 
-def create_number_type(prime: Optional[bool] = None, error: Optional[float] = None):
-    base_type = create_number_base_type(prime)
-    check_type = create_number_check(error)
-    return NumberType(base_type, check_type)
+def fold_number_type(number: Number, v_det_prime, v_prob_prime, v_det_comp, v_prob_comp, v_unknown):
+    return fold_number(
+        number,
+        f_det_prime=lambda value: v_det_prime,
+        f_prob_prime=lambda value, error: v_prob_prime,
+        f_det_comp=lambda value: v_det_comp,
+        f_prob_comp=lambda value, error: v_prob_comp,
+        f_unknown=lambda value: v_unknown
+    )
 
 
-def create_number_check(error: Optional[float] = None) -> NumberCheckType:
-    if (error is None) or (error <= 0.0):
-        return DeterministicCheck()
-    else:
-        return ProbableCheck(error)
-
-
-def create_number_base_type(prime: Optional[bool]) -> NumberBaseType:
-    if prime is None:
-        return NumberBaseType.UNKNOWN
-    elif prime:
-        return NumberBaseType.PRIME
-    else:
-        return NumberBaseType.COMPOSITE
-
+def fold_number_prob_type(number: Number, v_det_prime, f_prob_prime, v_det_comp, f_prob_comp, v_unknown):
+    return fold_number(
+        number,
+        f_det_prime=lambda value: v_det_prime,
+        f_prob_prime=lambda value, error: f_prob_prime(error),
+        f_det_comp=lambda value: v_det_comp,
+        f_prob_comp=lambda value, error: f_prob_comp(error),
+        f_unknown=lambda value: v_unknown
+    )
 
 def generate_number(
         max_value: int,
         min_value: int,
         seed: int,
-        number_type: Optional[NumberType] = None,
+        prime: Optional[bool] = None,
+        error: float = 0.0,
         max_tries: int = 100) -> Number:
-    if number_type is None:
-        number_type = NumberType(NumberBaseType.UNKNOWN, None)
-
-    generator = number_generator(min_value, max_value, seed, number_type.number_check_type)
-
-    def has_not_correct_type(number: Number) -> bool:
-        return (number.number_type != number_type) and (number_type.number_base_type != NumberBaseType.UNKNOWN)
+    generator = number_generator(min_value, max_value, seed)
 
     try:
-        return next(itertools.dropwhile(has_not_correct_type, itertools.islice(generator, max_tries)))
+        if prime is None:
+            return next(map(Unknown, generator))
+        else:
+            get_type = functools.partial(create_number, error=error, seed=seed)
+            has_not_correct_type = functools.partial(check_type, prime=not prime)
+            numbers = map(get_type, itertools.islice(generator, max_tries))
+            return next(itertools.dropwhile(has_not_correct_type, numbers))
+
     except StopIteration:
-        raise ValueError(
-            'Failed to generate a {0} number within {1} tries'.format(number_type.number_base_type.value, max_tries))
+        if prime is None:
+            number_type = "random"
+        elif prime:
+            number_type = "prime"
+        else:
+            number_type = "composite"
+
+        raise ValueError('Failed to generate a {0} number within {1} tries'.format(number_type, max_tries))
 
 
-def number_generator(min_value: int, max_value: int, seed: int, number_check: NumberCheckType):
+def number_generator(min_value: int, max_value: int, seed: int):
     rand = Random(seed)
     while True:
-        yield create_number(rand.randint(min_value, max_value), number_check, seed)
+        yield rand.randint(min_value, max_value)
 
 
-def is_det_prime(value: int):
+def is_prime(value: int):
     if value == 2:
         return True
     else:

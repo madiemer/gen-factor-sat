@@ -8,7 +8,7 @@ from gen_factor_sat import utils
 from gen_factor_sat.circuit.instances import TseitinFactoringStrategy
 from gen_factor_sat.circuit.tseitin.circuit import CNFBuilder
 from gen_factor_sat.circuit.tseitin.encoding import Clause, Symbol, Variable
-from gen_factor_sat.number_generator import generate_number, NumberType, Number, fold_number_type
+from gen_factor_sat.number_generator import Number, generate_number, fold_number, fold_number_type, fold_number_prob_type
 
 VERSION = '0.3'
 
@@ -33,12 +33,12 @@ class FactoringSat:
             comments.append('The number was (pseudo-) randomly chosen from the interval: ' + interval)
 
             number_type = fold_number_type(
-                self.number.number_type,
-                f_prime='The number is a prime number.',
-                f_prob_prime='The number is a prime number with an error probability less or equal to {0}.'.format,
-                f_comp='The number is a composite number.',
-                f_prob_comp=lambda x: 'The number is a composite number.',
-                f_unknown=''
+                self.number,
+                v_det_prime='The number is a prime number.',
+                v_prob_prime='The number is a prime number with an error probability less or equal to {0}.'.format,
+                v_det_comp='The number is a composite number.',
+                v_prob_comp='The number is a composite number.',
+                v_unknown=None
             )
 
             if number_type:
@@ -48,13 +48,13 @@ class FactoringSat:
             min_value_opt = '--min-value {0}'.format(self.min_value)
             max_value_arg = str(self.max_value)
             seed_opt = '--seed {0}'.format(self.seed) if self.seed else ''
-            number_type_opt = fold_number_type(
-                self.number.number_type,
-                f_prime='--prime',
+            number_type_opt = fold_number_prob_type(
+                self.number,
+                v_det_prime='--prime',
                 f_prob_prime='--prime --error {0}'.format,
-                f_comp='--no-prime',
+                v_det_comp='--no-prime',
                 f_prob_comp='--no-prime --error {0}'.format,
-                f_unknown=''
+                v_unknown=None
             )
 
             reproduce = ' '.join(filter(bool, [command, min_value_opt, seed_opt, number_type_opt, max_value_arg]))
@@ -64,7 +64,7 @@ class FactoringSat:
         comments.append('To reproduce this results call: ' + reproduce)
         comments.append('')
 
-        number = 'Factorization of the number: {0}'.format(self.number)
+        number = 'Factorization of the number: {0}'.format(self.number.value)
         factor_1 = 'Factor 1 is encoded in the variables: {0}'.format(self.factor_1)
         factor_2 = 'Factor 2 is encoded in the variables: {0}'.format(self.factor_2)
         encoding = 'All numbers are encoded with [msb, ..., lsb]'
@@ -77,7 +77,8 @@ def factorize_random_number(
         max_value: int,
         min_value: int = 2,
         seed: Optional[int] = None,
-        number_type: Optional[NumberType] = None,
+        prime: Optional[bool] = None,
+        error: float = 0.0,
         max_tries: int = 1000) -> FactoringSat:
     if seed is None:
         seed = random.randrange(sys.maxsize)
@@ -86,8 +87,9 @@ def factorize_random_number(
         max_value=max_value,
         min_value=min_value,
         seed=seed,
-        max_tries=max_tries,
-        number_type=number_type
+        prime=prime,
+        error=error,
+        max_tries=max_tries
     )
 
     factor_sat = factorize_number(number)

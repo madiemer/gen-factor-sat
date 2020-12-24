@@ -73,26 +73,25 @@ if args.command == commands[0]:
     write_cnf(result, args.outfile, default)
 
 elif args.command == commands[1]:
-    expected_type = number_generator.create_number_type(args.prime, args.error)
-
     result = factoring_sat.factorize_random_number(
         max_value=args.max_value,
         min_value=args.min_value,
         seed=args.seed,
-        max_tries=args.tries,
-        number_type=expected_type
+        prime=args.prime,
+        error=args.error,
+        max_tries=args.tries
     )
 
-    expected_type = number_generator.fold_number_type(
-        result.number.number_type,
-        f_prime='prime',
-        f_prob_prime='prob-prime',
-        f_comp='composite',
-        f_prob_comp=lambda x:'composite',
-        f_unknown='random'
+    number_type = number_generator.fold_number_type(
+        result.number,
+        v_det_prime='prime',
+        v_prob_prime='prob-prime',
+        v_det_comp='composite',
+        v_prob_comp='composite',
+        v_unknown='random'
     )
 
-    default = 'factor_seed{0}_minn{1}_maxn{2}_{3}.cnf'.format(result.seed, result.min_value, result.max_value, expected_type)
+    default = 'factor_seed{0}_minn{1}_maxn{2}_{3}.cnf'.format(result.seed, result.min_value, result.max_value, number_type)
     write_cnf(result, args.outfile, default)
 
 else:
