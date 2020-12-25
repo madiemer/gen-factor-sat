@@ -1,8 +1,8 @@
 import pytest
 
-from gen_factor_sat.circuit.default.circuit import constant
+from gen_factor_sat.formula.symbol import constant, variable
 from gen_factor_sat.circuit.tseitin.circuit import CNFBuilder, TseitinGateStrategy
-from gen_factor_sat.circuit.tseitin.encoding import variable, and_equality, or_equality, xor_equality, equal_equality
+from gen_factor_sat.circuit.tseitin.encoding import and_equality, or_equality, xor_equality, equal_equality
 
 
 @pytest.fixture()

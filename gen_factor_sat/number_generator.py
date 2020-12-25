@@ -10,6 +10,29 @@ from typing import Optional
 
 
 @dataclass()
+class GeneratorConfig:
+    min_value: int
+    max_value: int
+    seed: int
+
+    @staticmethod
+    def create(min_value: int, max_value: int, seed: int) -> GeneratorConfig:
+        if min_value < 2:
+            raise ValueError('The minimum value must be greater than or equal to 2')
+
+        if max_value < min_value:
+            raise ValueError('The maximum value must be greater than or equal to the minimum value')
+
+        return GeneratorConfig(min_value, max_value, seed)
+
+    @staticmethod
+    def generator(generator_config: GeneratorConfig):
+        rand = Random(generator_config.seed)
+        while True:
+            yield rand.randint(generator_config.min_value, generator_config.max_value)
+
+
+@dataclass()
 class Number(ABC):
     value: int
 
@@ -32,19 +55,17 @@ class Number(ABC):
 
     @staticmethod
     def generate(
-            max_value: int,
-            min_value: int,
-            seed: int,
+            generator_config: GeneratorConfig,
             prime: Optional[bool] = None,
             error: float = 0.0,
             max_tries: int = 100) -> Number:
-        generator = Number.__generator(min_value, max_value, seed)
+        generator = GeneratorConfig.generator(generator_config)
 
         try:
             if prime is None:
                 return next(map(Number.unchecked, generator))
             else:
-                get_type = functools.partial(Number.create, error=error, seed=seed)
+                get_type = functools.partial(Number.create, error=error, seed=generator_config.seed)
                 has_not_correct_type = functools.partial(Number.check_type, prime=not prime)
                 numbers = map(get_type, itertools.islice(generator, max_tries))
                 return next(itertools.dropwhile(has_not_correct_type, numbers))
@@ -57,13 +78,7 @@ class Number(ABC):
             else:
                 number_type = "composite"
 
-            raise ValueError('Failed to generate a {0} number within {1} tries'.format(number_type, max_tries))
-
-    @staticmethod
-    def __generator(min_value: int, max_value: int, seed: int):
-        rand = Random(seed)
-        while True:
-            yield rand.randint(min_value, max_value)
+            raise StopIteration('Failed to generate a {0} number within {1} tries'.format(number_type, max_tries))
 
     @staticmethod
     def check_type(number: Number, prime: bool) -> bool:
