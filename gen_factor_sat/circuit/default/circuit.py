@@ -15,14 +15,14 @@ class ConstantStrategy(GateStrategy[Constant, None]):
     zero: Constant = constant('0')
     one: Constant = constant('1')
 
-    def wire_and(self, input_1: Constant, input_2: Constant, writer: None = None) -> Constant:
-        return ConstantStrategy.__with_bool(op.and_, input_1, input_2)
+    def wire_and(self, value_1: Constant, value_2: Constant, writer: None = None) -> Constant:
+        return ConstantStrategy.__with_bool(op.and_, value_1, value_2)
 
-    def wire_or(self, input_1: Constant, input_2: Constant, writer: None = None) -> Constant:
-        return ConstantStrategy.__with_bool(op.or_, input_1, input_2)
+    def wire_or(self, value_1: Constant, value_2: Constant, writer: None = None) -> Constant:
+        return ConstantStrategy.__with_bool(op.or_, value_1, value_2)
 
-    def wire_not(self, input: Constant, writer: None = None) -> Constant:
-        return ConstantStrategy.__with_bool(op.not_, input)
+    def wire_not(self, value: Constant, writer: None = None) -> Constant:
+        return ConstantStrategy.__with_bool(op.not_, value)
 
     @staticmethod
     def __with_bool(func, *args):
@@ -39,45 +39,45 @@ class ConstantStrategy(GateStrategy[Constant, None]):
 
 class GeneralSimpleCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W], ABC):
 
-    def half_adder(self, input_1: T, input_2: T, writer: W) -> Tuple[T, T]:
-        output_sum = self.xor(input_1, input_2, writer)
-        output_carry = self.wire_and(input_1, input_2, writer)
+    def half_adder(self, value_1: T, value_2: T, writer: W) -> Tuple[T, T]:
+        output_sum = self.xor(value_1, value_2, writer)
+        output_carry = self.wire_and(value_1, value_2, writer)
 
         return output_sum, output_carry
 
-    def full_adder(self, input_1: T, input_2: T, carry: T, writer: W) -> Tuple[T, T]:
-        partial_sum, carry_1 = self.half_adder(input_1, input_2, writer)
+    def full_adder(self, value_1: T, value_2: T, carry: T, writer: W) -> Tuple[T, T]:
+        partial_sum, carry_1 = self.half_adder(value_1, value_2, writer)
         output_sum, carry_2 = self.half_adder(partial_sum, carry, writer)
 
         output_carry = self.wire_or(carry_1, carry_2, writer)
 
         return output_sum, output_carry
 
-    def equality(self, input_1: T, input_2: T, writer: W) -> T:
+    def equality(self, value_1: T, value_2: T, writer: W) -> T:
         return self.wire_or(
             self.wire_and(
-                input_1,
-                input_2,
+                value_1,
+                value_2,
                 writer
             ),
             self.wire_and(
-                self.wire_not(input_1, writer),
-                self.wire_not(input_2, writer),
+                self.wire_not(value_1, writer),
+                self.wire_not(value_2, writer),
                 writer
             ),
             writer
         )
 
-    def xor(self, input_1: T, input_2: T, writer: W) -> T:
+    def xor(self, value_1: T, value_2: T, writer: W) -> T:
         return self.wire_or(
             self.wire_and(
-                input_1,
-                self.wire_not(input_2, writer),
+                value_1,
+                self.wire_not(value_2, writer),
                 writer
             ),
             self.wire_and(
-                self.wire_not(input_1, writer),
-                input_2,
+                self.wire_not(value_1, writer),
+                value_2,
                 writer
             ),
             writer
@@ -87,14 +87,14 @@ class GeneralSimpleCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, 
 class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W], NBitCircuitStrategy[T, W],
                                  ABC):
 
-    def n_bit_adder(self, inputs_1: List[T], inputs_2: List[T], carry: T, writer: W) -> List[T]:
-        if not inputs_1:
-            return self.propagate(inputs_2, carry, writer)
-        elif not inputs_2:
-            return self.propagate(inputs_1, carry, writer)
+    def n_bit_adder(self, number_1: List[T], number_2: List[T], carry: T, writer: W) -> List[T]:
+        if not number_1:
+            return self.propagate(number_2, carry, writer)
+        elif not number_2:
+            return self.propagate(number_1, carry, writer)
         else:
-            *init_1, lsb_1 = inputs_1
-            *init_2, lsb_2 = inputs_2
+            *init_1, lsb_1 = number_1
+            *init_2, lsb_2 = number_2
 
             lsb_sum, lsb_carry = self.full_adder(lsb_1, lsb_2, carry, writer)
             init_sum = self.n_bit_adder(init_1, init_2, lsb_carry, writer)
@@ -130,38 +130,38 @@ class GeneralNBitCircuitStrategy(GateStrategy[T, W], SimpleCircuitStrategy[T, W]
     #     result.reverse()
     #     return result
 
-    def subtract(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> List[T]:
-        if self.all_zero(inputs_2):
-            return inputs_1
+    def subtract(self, number_1: List[T], number_2: List[T], writer: W) -> List[T]:
+        if self.all_zero(number_2):
+            return number_1
         else:
-            aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2, writer)
+            aligned_number_1, aligned_number_2 = self.align(number_1, number_2, writer)
 
-            complement = list(map(functools.partial(self.wire_not, writer=writer), aligned_inputs_2))
-            output_sum = self.n_bit_adder(aligned_inputs_1, complement, self.one, writer)
+            complement = list(map(functools.partial(self.wire_not, writer=writer), aligned_number_2))
+            output_sum = self.n_bit_adder(aligned_number_1, complement, self.one, writer)
 
             return output_sum[1:]  # Carry is not needed
 
-    def n_bit_equality(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> T:
-        aligned_inputs_1, aligned_inputs_2 = self.align(inputs_1, inputs_2, writer)
+    def n_bit_equality(self, number_1: List[T], number_2: List[T], writer: W) -> T:
+        aligned_number_1, aligned_number_2 = self.align(number_1, number_2, writer)
 
         pairwise_equal = itertools.starmap(functools.partial(self.equality, writer=writer),
-                                           zip(aligned_inputs_1, aligned_inputs_2))
+                                           zip(aligned_number_1, aligned_number_2))
 
         all_equal = functools.reduce(functools.partial(self.wire_and, writer=writer), pairwise_equal)
 
         return all_equal
 
-    def shift(self, inputs_1: List[T], shifts: int, writer: W) -> List[T]:
-        return inputs_1 + [self.zero] * shifts
+    def shift(self, number: List[T], shifts: int, writer: W) -> List[T]:
+        return number + [self.zero] * shifts
 
-    def align(self, inputs_1: List[T], inputs_2: List[T], writer: W) -> Tuple[List[T], List[T]]:
-        aligned_inputs_1 = ([self.zero] * (len(inputs_2) - len(inputs_1))) + inputs_1
-        aligned_inputs_2 = ([self.zero] * (len(inputs_1) - len(inputs_2))) + inputs_2
+    def align(self, number_1: List[T], number_2: List[T], writer: W) -> Tuple[List[T], List[T]]:
+        aligned_number_1 = ([self.zero] * (len(number_2) - len(number_1))) + number_1
+        aligned_number_2 = ([self.zero] * (len(number_1) - len(number_2))) + number_2
 
-        return aligned_inputs_1, aligned_inputs_2
+        return aligned_number_1, aligned_number_2
 
-    def all_zero(self, values: List[T]):
-        return all(self.is_zero(value) for value in values)
+    def all_zero(self, number: List[T]):
+        return all(self.is_zero(value) for value in number)
 
-    def normalize(self, inputs: List[T]) -> List[T]:
-        return list(itertools.dropwhile(self.is_zero, inputs))
+    def normalize(self, number: List[T]) -> List[T]:
+        return list(itertools.dropwhile(self.is_zero, number))

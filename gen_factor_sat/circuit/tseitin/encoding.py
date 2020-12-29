@@ -71,12 +71,29 @@ def equal_equality(input_1: Variable, input_2: Variable, output: Variable) -> Se
 
 
 def clause(literals: List[Variable]) -> Clause:
+    """
+    Convert a list of literals into clause representation.
+
+    :param literals: the literals that should be used to create the clause
+    :return: the clause consisting of the specified literals
+    """
     return frozenset(literals)
 
 
 def unit_clause(literal: Variable) -> Clause:
+    """
+    Create a unit clause using the specified literal.
+
+    :param literal: the literal that should be used to create the unit clause
+    :return: the resulting unit clause
+    """
     return frozenset([literal])
 
 
 def empty_clause() -> Clause:
+    """
+    Create an empty clause, which makes formulas unsatisfiable.
+
+    :return: an empty clause
+    """
     return frozenset([])
