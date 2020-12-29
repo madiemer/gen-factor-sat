@@ -4,8 +4,9 @@ from collections import Counter
 import pytest
 
 import gen_factor_sat.circuit.tseitin.encoding as te
-from gen_factor_sat.circuit.tseitin.encoding import variable
-from gen_factor_sat.factoring_sat import factorize_number, clause_to_dimacs, cnf_to_dimacs
+from gen_factor_sat.factoring_sat import FactoringSat
+from gen_factor_sat.formula.cnf import CNF
+from gen_factor_sat.formula.symbol import variable
 
 comment_line = re.compile('c (?P<comment>.*)')
 problem_line = re.compile('p cnf (?P<variables>\\d*) (?P<clauses>\\d*)')
@@ -18,7 +19,7 @@ clause_line = re.compile('(-?[1-9][0-9]* )*0')
     te.clause(list(map(variable, [1, -2, -4, 17])))
 ])
 def test_clauses_to_dimacs_conversion(clause):
-    dimacs_clause = clause_to_dimacs(clause)
+    dimacs_clause = CNF.clause_to_dimacs(clause)
     assert clause_line.match(dimacs_clause), 'Clauses should match the DIMACS format'
 
     numbers = list(map(int, dimacs_clause.split(' ')))
@@ -34,7 +35,8 @@ def test_clauses_to_dimacs_conversion(clause):
     (17, {te.clause(list(map(variable, [-1, -12, -4]))), te.empty_clause()})
 ])
 def test_cnf_to_dimacs_conversion(num_vars, clauses):
-    dimacs = cnf_to_dimacs(num_vars, clauses)
+    cnf = CNF(num_vars, clauses)
+    dimacs = cnf.to_dimacs()
 
     lines = dimacs.splitlines(keepends=False)
     assert len(lines) == 1 + len(clauses), "All clauses should be written"
@@ -54,7 +56,9 @@ def test_comments_should_be_prepended(comments):
     num_vars = 13
     clauses = {te.clause(list(map(variable, [-1, 3]))),
                te.clause(list(map(variable, [-10, -5, 14])))}
-    dimacs = cnf_to_dimacs(num_vars, clauses, comments=comments)
+
+    cnf = CNF(num_vars, clauses)
+    dimacs = cnf.to_dimacs(comments=comments)
 
     lines = dimacs.splitlines(keepends=False)
     assert len(lines) == len(comments) + 1 + len(clauses)
@@ -68,7 +72,7 @@ def test_comments_should_be_prepended(comments):
 
 @pytest.fixture(scope='module', params=[2, 17, 2 ** 15 + 17896, 2 ** 23 + 1247561])
 def factoring_instance(request):
-    factor_sat = factorize_number(request.param)
+    factor_sat = FactoringSat.factorize_number(request.param)
     return factor_sat
 
 
@@ -103,8 +107,8 @@ def test_encoded_cnf(factoring_instance):
             num_variables = int(match.group('variables'))
             num_clauses = int(match.group('clauses'))
 
-            assert num_variables == factoring_instance.number_of_variables
-            assert num_clauses == len(factoring_instance.clauses)
+            assert num_variables == factoring_instance.cnf.number_of_variables
+            assert num_clauses == len(factoring_instance.cnf.clauses)
 
         elif clause_line.match(line):
             clause = list(map(int, line.split(' ')[:-1]))
@@ -115,5 +119,5 @@ def test_encoded_cnf(factoring_instance):
 
             clauses.append(frozenset(clause))
 
-    assert len(clauses) == len(factoring_instance.clauses)
-    assert set(clauses) == factoring_instance.clauses
+    assert len(clauses) == len(factoring_instance.cnf.clauses)
+    assert set(clauses) == factoring_instance.cnf.clauses
