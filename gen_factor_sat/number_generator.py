@@ -38,10 +38,26 @@ class Number(ABC):
 
     @staticmethod
     def unchecked(value: int) -> Number:
+        """
+        Create a number without determining its type.
+
+        :param value: the value of the number
+        :return: the number
+        """
         return Unknown(value)
 
     @staticmethod
     def create(value: int, seed: int, error: float) -> Number:
+        """
+        Create a number of the corresponding type. If a small error rate is
+        allowed, a probabilistic (seeded) prime test is used. In this case,
+        the resulting number is marked as probabilistic.
+
+        :param value: the value of the number
+        :param seed: the seed for the probabilistic prime test
+        :param error: the max error probability
+        :return: the number
+        """
         if error > 0.0:
             if is_prob_prime(value, error, seed):
                 return ProbPrime(value, error)
@@ -58,7 +74,20 @@ class Number(ABC):
             generator_config: GeneratorConfig,
             prime: Optional[bool] = None,
             error: float = 0.0,
-            max_tries: int = 100) -> Number:
+            max_tries: int = 1000) -> Number:
+        """
+        Generate a number based on the specified generator configuration.
+        The optional prime flag can be used to specify whether the resulting
+        number should be a prime or composite number. If a small error rate
+        is allowed, a probabilistic prime test is used. Stops if no number with
+        the correct type can be found within the given number of tries.
+
+        :param generator_config: the configuration to generate number candidates
+        :param prime: whether the number should be a prime number
+        :param error: the permitted error probability
+        :param max_tries: the number of tries to generate a number
+        :return: the generated number
+        """
         generator = GeneratorConfig.generator(generator_config)
 
         try:
@@ -82,6 +111,13 @@ class Number(ABC):
 
     @staticmethod
     def check_type(number: Number, prime: bool) -> bool:
+        """
+        Check whether the given number is of the specified type.
+
+        :param number: the number to be checked
+        :param prime: the type of the number
+        :return: true if teh number is of the specified type, otherwise false
+        """
         if prime:
             return isinstance(number, Prime)
         else:

@@ -62,7 +62,7 @@ class FactoringSat:
         factor_1 = cnf_builder.next_variables(factor_length_1)
         factor_2 = cnf_builder.next_variables(factor_length_2)
 
-        fact_result = factoring_circuit.factorize(
+        fact_result = factoring_circuit.is_factorization(
             cast(List[Symbol], factor_1),
             cast(List[Symbol], factor_2),
             cast(List[Symbol], bin_number),

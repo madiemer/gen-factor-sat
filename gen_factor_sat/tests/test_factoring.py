@@ -1,7 +1,7 @@
 from collections import Counter
 
 import pytest
-from hypothesis import given, assume
+from hypothesis import given, assume, settings
 from hypothesis.strategies import integers, booleans, floats
 from pysat.solvers import Solver
 
@@ -10,6 +10,7 @@ from gen_factor_sat.factoring_sat import FactoringSat
 
 
 @given(integers(min_value=2, max_value=2 ** 40))
+@settings(deadline=None)
 def test_reproducibility(number):
     factoring_1 = FactoringSat.factorize_number(number)
     factoring_2 = FactoringSat.factorize_number(number)
@@ -21,6 +22,7 @@ def test_reproducibility(number):
     max_value=integers(min_value=2, max_value=2 ** 40),
     min_value=integers(min_value=2, max_value=2 ** 20),
     seed=integers())
+@settings(deadline=None)
 def test_seeded_reproducibility(max_value, min_value, seed):
     assume(min_value <= max_value)
     number_1 = FactoringSat.factorize_random_number(max_value, min_value, seed)
@@ -36,6 +38,7 @@ def test_seeded_reproducibility(max_value, min_value, seed):
     prime=booleans(),
     error=floats(min_value=0.0, max_value=1.0)
 )
+@settings(deadline=None)
 def test_seeded_prime_reproducibility(max_value, min_value, seed, prime, error):
     assume(min_value <= max_value - 10)
     number_1 = FactoringSat.factorize_random_number(max_value, min_value, seed, prime, error)

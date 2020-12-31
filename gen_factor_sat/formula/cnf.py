@@ -1,3 +1,8 @@
+"""
+Conjunctive normal form
+
+Representations of a CNF.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass

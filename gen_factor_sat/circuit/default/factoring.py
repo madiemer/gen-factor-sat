@@ -16,7 +16,7 @@ class GeneralFactoringStrategy(
     FactoringStrategy[T, W],
     ABC
 ):
-    def factorize(self, factor_1: List[T], factor_2: List[T], number: List[T], writer: W) -> T:
+    def is_factorization(self, factor_1: List[T], factor_2: List[T], number: List[T], writer: W) -> T:
         mult_result = self.multiply(factor_1, factor_2, writer)
         fact_result = self.n_bit_equality(mult_result, number, writer)
         return fact_result

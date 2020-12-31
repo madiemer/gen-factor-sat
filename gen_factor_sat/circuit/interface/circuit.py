@@ -137,7 +137,7 @@ class SimpleCircuitStrategy(Generic[T, W], ABC):
         :param value_1: the first value to be compared
         :param value_2: the second value to be compared
         :param writer: a writer for stateful operations
-        :return: the result of the comparison
+        :return: one if both values are equal, otherwise zero
         """
         pass
 
@@ -149,7 +149,7 @@ class SimpleCircuitStrategy(Generic[T, W], ABC):
         :param value_1: the first value to be compared
         :param value_2: the second value to be compared
         :param writer: a writer for stateful operations
-        :return: the result of the comparison
+        :return: one if both values are not equal, otherwise zero
         """
         pass
 
@@ -170,7 +170,7 @@ class NBitCircuitStrategy(Generic[T, W], ABC):
         :param number_2: the second value to be added
         :param carry: the carry value to be added
         :param writer: a writer for stateful operations
-        :return: the resulting value including an optional carry
+        :return: the sum including an optional carry
         """
         pass
 
@@ -185,7 +185,7 @@ class NBitCircuitStrategy(Generic[T, W], ABC):
         :param number_1: the minued
         :param number_2: the subtrahend
         :param writer: a writer for stateful operations
-        :return: the resulting value
+        :return: the difference between the values
         """
         pass
 
@@ -197,7 +197,7 @@ class NBitCircuitStrategy(Generic[T, W], ABC):
         :param number_1: the first value to be compared
         :param number_2: the second value to be compared
         :param writer: a writer for stateful operations
-        :return: the result of the comparison
+        :return: one if both values are equal, otherwise zero
         """
         pass
 
