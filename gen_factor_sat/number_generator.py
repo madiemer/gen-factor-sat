@@ -6,17 +6,31 @@ import math
 from abc import ABC
 from dataclasses import dataclass
 from random import Random
-from typing import Optional
+from typing import Optional, Generator
 
 
 @dataclass()
 class GeneratorConfig:
+    """
+    Data to configure the generation of numbers. The same configurations will
+    produce the same results.
+    """
     min_value: int
     max_value: int
     seed: int
 
     @staticmethod
     def create(min_value: int, max_value: int, seed: int) -> GeneratorConfig:
+        """
+        Store the configuration in a GeneratorConfig object. The upper limit
+        must be greater or equal to the lower bound. Both must be at least 2.
+
+        :param min_value: the smallest value the random numbers can take
+        :param max_value: the largest value the random numbers can take
+        :param seed: the seed used to generate the numbers
+        :return: the configuration
+        :raises ValueError if min_value < 2 or min_value > max_value
+        """
         if min_value < 2:
             raise ValueError('The minimum value must be greater than or equal to 2')
 
@@ -26,7 +40,15 @@ class GeneratorConfig:
         return GeneratorConfig(min_value, max_value, seed)
 
     @staticmethod
-    def generator(generator_config: GeneratorConfig):
+    def generator(generator_config: GeneratorConfig) -> Generator[int, None, None]:
+        """
+        Create an infinite number generator based on the specified configuration.
+        The numbers a generated pseudo-randomly, hence the same configuration
+        produces the same result.
+
+        :param generator_config: the configuration of number generation
+        :return: an infinite generator of random numbers
+        """
         rand = Random(generator_config.seed)
         while True:
             yield rand.randint(generator_config.min_value, generator_config.max_value)
@@ -34,6 +56,10 @@ class GeneratorConfig:
 
 @dataclass()
 class Number(ABC):
+    """
+    Algebraic data type to represent numbers. A number can be either of type
+    Prime, Composite or Unknown.
+    """
     value: int
 
     @staticmethod
@@ -191,7 +217,13 @@ class Unknown(Number):
     pass
 
 
-def is_prime(value: int):
+def is_prime(value: int) -> bool:
+    """
+    Check whether the specified number is a prime number.
+
+    :param value: the value to be checked
+    :return: true if the number is a prime, false otherwise
+    """
     if value == 2:
         return True
     else:
@@ -199,6 +231,17 @@ def is_prime(value: int):
 
 
 def is_prob_prime(value: int, error: float, seed: int):
+    """
+    Check whether the specified number is a prime number.
+    The probabilistic prime test is repeated until the false positive probability
+    falls below the tolerated error rate. All random decisions use the specified
+    seed which can be used to reproduced the results.
+
+    :param value: the number to be checked
+    :param error: the tolerated false positive probability
+    :param seed: a seed to reproduce the results
+    :return: true if the number is a prime, false otherwise
+    """
     rand = Random(seed)
 
     iterations = math.ceil(-math.log(error) / math.log(4))

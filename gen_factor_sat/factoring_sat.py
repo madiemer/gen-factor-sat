@@ -16,6 +16,12 @@ from gen_factor_sat.number_generator import Number, GeneratorConfig
 
 @dataclass
 class FactoringSat:
+    """
+    This data class provides all relevant information about the transformation of
+    the factoring problem into SAT. Besides the resulting CNF, this includes the
+    variables encoding the factors and all necessary configurations to reproduce
+    the results.
+    """
     VERSION = '0.3'
     number: Number
     factor_1: List[Variable]
@@ -31,6 +37,25 @@ class FactoringSat:
             prime: Optional[bool] = None,
             error: float = 0.0,
             max_tries: int = 1000) -> FactoringSat:
+        """
+        Encode the factoring of a pseudo-randomly generated number into a CNF.
+        The number generator as well as the encoding is deterministic. Therefore,
+        calling this function with the same configuration produces the same result.
+
+        The optional prime flag can be used to specify whether the resulting
+        number should be a prime or composite number. If a small error rate
+        is allowed, a probabilistic prime test is used. Stops if no number with
+        the correct type can be found within the given number of tries.
+        See the number generator module for more details.
+
+        :param max_value: the largest possible value the generated number can have
+        :param min_value: the smallest possible value the generated number can have
+        :param seed: the seed used to generate the number
+        :param prime: whether the number should be a prime number
+        :param error: the permitted error probability
+        :param max_tries: the number of tries to generate a number
+        :return: the encoded factoring instance (see FactoringSat)
+        """
         if seed is None:
             seed = random.randrange(sys.maxsize)
 
@@ -49,6 +74,14 @@ class FactoringSat:
 
     @staticmethod
     def factorize_number(number: int) -> FactoringSat:
+        """
+        Encode the factoring of the specified number into a CNF.
+        The encoding is deterministic. Therefore, calling this method with the
+        same number produces the same result.
+
+        :param number: the number to be factorized
+        :return: the encoded factoring instance (see FactoringSat)
+        """
         return FactoringSat.__factorize_number(Number.unchecked(number))
 
     @staticmethod
@@ -85,7 +118,14 @@ class FactoringSat:
 
         return factor_length_1, factor_length_2
 
-    def to_dimacs(self):
+    def to_dimacs(self) -> str:
+        """
+        Encode this factoring instance into DIMACS. The comments includes
+        instructions to reproduce these results and the variables encoding
+        the factors.
+
+        :return: the resulting DIMACS
+        """
         comments = []
         comments.append('GenFactorSat v{0}'.format(FactoringSat.VERSION))
 
@@ -116,7 +156,12 @@ class FactoringSat:
 
         return self.cnf.to_dimacs(comments=comments)
 
-    def reproduce_command(self):
+    def reproduce_command(self) -> str:
+        """
+        Generate a command to reproduce this results.
+
+        :return: the command
+        """
         if self.generator:
             command = 'gen_factor_sat random'
             seed_opt = '--seed {0}'.format(self.generator.seed)
