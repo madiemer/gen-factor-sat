@@ -1,8 +1,10 @@
 # GenFactorSat
-This application transforms the problem of deciding whether a number is composite into the satisfiability problem. The transformation is handled in such a way that two factors can be retrieved from the resulting satisfying assignment.
+Generate CNF formulas based on the factoring problem to test SAT-Solvers. The application can generate random numbers, but numbers may also be specified. The main part covers the reduction of the factoring problem to SAT. As an intermediate step, the problem is converted into CIRCUIT-SAT. This conversion is achieved by creating a circuit to multiply factor candidates and comparing the resulting product to the given number. Finally, the Tseitin transformation is used to convert the circuit into a CNF.
+
+The resulting formula is satisfiable if and only if there exist two non-trivial factors of the given number. Additionally, based on the way the formula is constructed, the factors can be retrieved from a satisfying assignment. Therefore, the variables representing the input of the circuit, i.e. the factor candidates, are documented.
 
 ## Usage
-The tool was created using Python 3.7.3. Currently, it supports factoring a specified number or generating a pseudorandom number itself. For detailed information on the usage, please refer to:
+The tool was created using Python 3.7.3 but should run with similar Python versions. Currently, it supports using a given number or generating a pseudorandom number. The resulting CNF is encoded using the DIMACS format and is written to stdout or a specified file. For detailed information on the usage and all configuration options, please refer to:
 ```
 gen_factor_sat --help
 ```
