@@ -3,6 +3,7 @@ import itertools
 import pytest
 
 import gen_factor_sat.circuit.tseitin.encoding as te
+import gen_factor_sat.tests.utils as test_utils
 
 
 @pytest.mark.parametrize('variables', [[1, 2, 3]])
@@ -17,18 +18,8 @@ def test_clause_assignments(variables, tseitin, bool_expr):
 
 
 def check_assignments(variables, clauses, bool_expr):
-    for assignment in itertools.product([False, True], repeat=len(variables)):
+    for values in itertools.product([False, True], repeat=len(variables)):
+        assignment = list(test_utils.assign(variables, values))
+        result = test_utils.run_cnf(assignment, [], clauses)
 
-        remaining = clauses
-        for (variable, value) in zip(variables, assignment):
-            remaining = assign(variable, value, remaining)
-
-        assert not bool(remaining) == bool_expr(*assignment)
-
-
-def assign(x, value, clauses):
-    u = x if value else -x
-    clauses_u = list(filter(lambda clause: u not in clause, clauses))
-    clauses_u = list(map(lambda clause: list(filter(lambda l: l != -u, clause)), clauses_u))
-
-    return clauses_u
+        assert (result is not None) == bool_expr(*values)

@@ -4,6 +4,7 @@ from hypothesis.strategies import integers
 from pysat.formula import CNF
 from pysat.solvers import Solver
 
+import gen_factor_sat.tests.utils as test_utils
 from gen_factor_sat import utils
 from gen_factor_sat.circuit.instances import ConstantFactoringStrategy, ConstantWallaceFactoringStrategy, \
     TseitinFactoringStrategy, TseitinWallaceFactoringStrategy
@@ -30,20 +31,20 @@ def tseitin_wallace_strategy():
     return TseitinWallaceFactoringStrategy()
 
 
-@given(x=integers(0, 2 ** 40), y=integers(0, 2 ** 40))
-def test_wallace(constant_wallace_strategy, x, y):
-    assert run_eval_mult(constant_wallace_strategy, x, y) == x * y
+@given(factor_1=integers(0, 2 ** 40), factor_2=integers(0, 2 ** 40))
+def test_wallace(constant_wallace_strategy, factor_1, factor_2):
+    assert run_eval_mult(constant_wallace_strategy, factor_1, factor_2) == factor_1 * factor_2
 
 
-@given(x=integers(0, 2 ** 60), y=integers(0, 2 ** 60))
-def test_karatsuba(constant_strategy, x, y):
-    assert run_eval_mult(constant_strategy, x, y) == x * y
+@given(factor_1=integers(0, 2 ** 60), factor_2=integers(0, 2 ** 60))
+def test_karatsuba(constant_strategy, factor_1, factor_2):
+    assert run_eval_mult(constant_strategy, factor_1, factor_2) == factor_1 * factor_2
 
 
-@given(x=integers(2 ** 21, 2 ** 60), y=integers(0, 2 ** 30))
-def test_split_simplification(constant_strategy, x, y):
-    assume(len(utils.to_bin_list(x)) > 2 * len(utils.to_bin_list(y)))
-    assert run_eval_mult(constant_strategy, x, y) == x * y
+@given(factor_1=integers(2 ** 21, 2 ** 60), factor_2=integers(0, 2 ** 30))
+def test_split_simplification(constant_strategy, factor_1, factor_2):
+    assume(len(utils.to_bin_list(factor_1)) > 2 * len(utils.to_bin_list(factor_2)))
+    assert run_eval_mult(constant_strategy, factor_1, factor_2) == factor_1 * factor_2
 
 
 @pytest.mark.parametrize('factor_1', [1, 17, 2 ** 10 + 865, 2 ** 21 + 46196])
@@ -78,35 +79,10 @@ def run_tseitin_mult(tseitin_circuit, factor_1, factor_2):
 
     result = tseitin_circuit.multiply(factor_1, factor_2, cnf_builder)
 
-    assignment_1 = list(assign(factor_1, bin_factor_1))
-    assignment_2 = list(assign(factor_2, bin_factor_2))
+    assignment_1 = list(test_utils.assign(factor_1, bin_factor_1))
+    assignment_2 = list(test_utils.assign(factor_2, bin_factor_2))
 
-    bin_result = run_cnf(assignment_1 + assignment_2, result, cnf_builder.build_clauses())
+    bin_result = test_utils.run_cnf(assignment_1 + assignment_2, result, cnf_builder.build_clauses())
+    assert bin_result is not None, 'The formula should always have satisfying assignment'
 
     return utils.to_int(bin_result)
-
-
-def assign(variables, values):
-    for variable, value in zip(variables, values):
-        yield variable if value == '1' else -variable
-
-
-def run_cnf(input_assignment, output_variables, clauses):
-    formula = CNF(from_clauses=clauses)
-
-    with Solver(name="cadical", bootstrap_with=formula) as solver:
-        solver.solve(assumptions=input_assignment)
-        model = solver.get_model()
-
-    bin_result = []
-    for variable in output_variables:
-        if isinstance(variable, str):
-            bin_result.append(variable == '1')
-        elif isinstance(variable, int):
-            assignment = model[abs(variable) - 1]
-            assignment = assignment if variable >= 0 else -assignment
-            bin_result.append(assignment >= 0)
-        else:
-            raise ValueError("Invalid output: " + variable)
-
-    return list(map(utils.to_bin_string, bin_result))
