@@ -78,7 +78,7 @@ class GateStrategy(Generic[T, W], ABC):
         :param value: the value to be checked
         :return: true if the value is zero or one, otherwise false
         """
-        return (value == self.zero) or (value == self.one)
+        return self.is_zero(value) or self.is_one(value)
 
     def is_zero(self, value: T) -> bool:
         """
@@ -89,6 +89,22 @@ class GateStrategy(Generic[T, W], ABC):
         """
         return value == self.zero
 
+    def expect_zero(self, value: T, writer: W) -> T:
+        """
+        Cast the value to the zero element. The default implementation will
+        raise an exception if the value is not zero. Subclasses may define an
+        alternative error handling.
+
+        :param value: the value to be casted
+        :param writer: a writer for stateful operations
+        :return: the zero element
+        :raises ValueError if the value is not zero
+        """
+        if not self.is_zero(value):
+            raise ValueError('the value {0} cannot be cast to {1}'.format(value, self.zero))
+        else:
+            return self.zero
+
     def is_one(self, value: T) -> bool:
         """
         Check whether the value is the one element.
@@ -97,6 +113,22 @@ class GateStrategy(Generic[T, W], ABC):
         :return: true if the value is equal to the one element, otherwise false
         """
         return value == self.one
+
+    def expect_one(self, value: T, writer: W) -> T:
+        """
+        Cast the value to the one element. The default implementation will
+        raise an exception if the value is not one. Subclasses may define an
+        alternative error handling.
+
+        :param value: the value to be casted
+        :param writer: a writer for stateful operations
+        :return: the one element
+        :raises ValueError if the value is not one
+        """
+        if not self.is_zero(value):
+            raise ValueError('the value {0} cannot be cast to {1}'.format(value, self.one))
+        else:
+            return self.one
 
 
 class SimpleCircuitStrategy(Generic[T, W], ABC):
@@ -182,7 +214,7 @@ class NBitCircuitStrategy(Generic[T, W], ABC):
         than or equal to the second value.
         The numbers are interpreted as [msb, ..., lsb].
 
-        :param number_1: the minued
+        :param number_1: the minuend
         :param number_2: the subtrahend
         :param writer: a writer for stateful operations
         :return: the difference between the values

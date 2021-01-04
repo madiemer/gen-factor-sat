@@ -5,7 +5,7 @@ from gen_factor_sat import utils
 
 def assign(variables, values):
     for variable, value in zip(variables, values):
-        yield variable if (value == '1') or (value == True) else -variable
+        yield variable if value in ('1', True) else -variable
 
 
 def run_cnf(input_assignment, output_variables, clauses):

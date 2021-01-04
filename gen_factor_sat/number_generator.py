@@ -32,7 +32,7 @@ class GeneratorConfig:
         :raises ValueError if min_value < 2 or min_value > max_value
         """
         if min_value < 2:
-            raise ValueError('The minimum value must be greater than or equal to 2')
+            raise ValueError('The minimum value must be at least 2')
 
         if max_value < min_value:
             raise ValueError('The maximum value must be greater than or equal to the minimum value')
@@ -70,6 +70,9 @@ class Number(ABC):
         :param value: the value of the number
         :return: the number
         """
+        if value < 2:
+            raise ValueError("The number must be at least 2")
+
         return Unknown(value)
 
     @staticmethod
@@ -84,6 +87,9 @@ class Number(ABC):
         :param error: the max error probability
         :return: the number
         """
+        if value < 2:
+            raise ValueError("The number must be at least 2")
+
         if error > 0.0:
             if is_prob_prime(value, error, seed):
                 return ProbPrime(value, error)

@@ -5,7 +5,7 @@ import timeit
 from collections import Counter
 
 from gen_factor_sat import utils
-from gen_factor_sat.factoring_sat import factorize_number
+from gen_factor_sat.factoring_sat import FactoringSat
 
 METRICS = 'metrics.csv'
 METRICS_SCHEMA = ['Version', 'Number', 'Number length', 'Variables',
@@ -32,17 +32,17 @@ def append_csv(filename, rows, fieldnames):
 
 
 for number, runs in SCENARIOS:
-    instance = factorize_number(number=number)
-    avg_time = timeit.timeit(functools.partial(factorize_number, number=number),
+    instance = FactoringSat.factorize_number(number=number)
+    avg_time = timeit.timeit(functools.partial(FactoringSat.factorize_number, number=number),
                              number=runs) / runs * 10 ** 3
 
-    clause_size_counter = Counter(map(len, instance.clauses))
+    clause_size_counter = Counter(map(len, instance.cnf.clauses))
     csv_data = {
         'Version': VERSION,
         'Number': number,
-        'Number length': len(utils.to_bin_list(instance.number)),
-        'Variables': instance.number_of_variables,
-        'Clauses': len(instance.clauses),
+        'Number length': len(utils.to_bin_list(instance.number.value)),
+        'Variables': instance.cnf.number_of_variables,
+        'Clauses': len(instance.cnf.clauses),
         '1 Literal': clause_size_counter[1],
         '2 Literals': clause_size_counter[2],
         '3 Literals': clause_size_counter[3],

@@ -7,11 +7,12 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple, cast
 
 from gen_factor_sat import utils
-from gen_factor_sat.circuit.instances import TseitinFactoringStrategy
-from gen_factor_sat.circuit.tseitin.circuit import CNFBuilder
-from gen_factor_sat.formula.cnf import CNF
+from gen_factor_sat.circuit.instances import FactoringAndGateStrategy, TseitinFactoringStrategy
+from gen_factor_sat.formula.cnf import CNF, CNFBuilder
 from gen_factor_sat.formula.symbol import Symbol, Variable
 from gen_factor_sat.number_generator import Number, GeneratorConfig
+
+SymFacStrategy = FactoringAndGateStrategy[Symbol, CNFBuilder]
 
 
 @dataclass
@@ -30,13 +31,19 @@ class FactoringSat:
     generator: Optional[GeneratorConfig] = None
 
     @staticmethod
+    def __default_strategy() -> SymFacStrategy:
+        return TseitinFactoringStrategy()
+
+    @staticmethod
     def factorize_random_number(
             max_value: int,
             min_value: int = 2,
             seed: Optional[int] = None,
             prime: Optional[bool] = None,
             error: float = 0.0,
-            max_tries: int = 1000) -> FactoringSat:
+            max_tries: int = 1000,
+            strategy: Optional[SymFacStrategy] = None
+    ) -> FactoringSat:
         """
         Encode the factoring of a pseudo-randomly generated number into a CNF.
         The number generator as well as the encoding is deterministic. Therefore,
@@ -54,6 +61,7 @@ class FactoringSat:
         :param prime: whether the number should be a prime number
         :param error: the permitted error probability
         :param max_tries: the number of tries to generate a number
+        :param strategy: the strategy to be used
         :return: the encoded factoring instance (see FactoringSat)
         """
         if seed is None:
@@ -67,27 +75,33 @@ class FactoringSat:
             max_tries=max_tries
         )
 
-        factor_sat = FactoringSat.__factorize_number(number)
+        factor_sat = FactoringSat.__factorize_number(number, strategy)
         factor_sat.generator = generator_config
 
         return factor_sat
 
     @staticmethod
-    def factorize_number(number: int) -> FactoringSat:
+    def factorize_number(
+            number: int,
+            strategy: Optional[SymFacStrategy] = None
+    ) -> FactoringSat:
         """
         Encode the factoring of the specified number into a CNF.
         The encoding is deterministic. Therefore, calling this method with the
         same number produces the same result.
 
         :param number: the number to be factorized
+        :param strategy: the strategy to be used
         :return: the encoded factoring instance (see FactoringSat)
         """
-        return FactoringSat.__factorize_number(Number.unchecked(number))
+        return FactoringSat.__factorize_number(Number.unchecked(number), strategy)
 
     @staticmethod
-    def __factorize_number(number: Number) -> FactoringSat:
+    def __factorize_number(number: Number, strategy: Optional[SymFacStrategy] = None) -> FactoringSat:
+        if strategy is None:
+            strategy = FactoringSat.__default_strategy()
+
         cnf_builder = CNFBuilder()
-        factoring_circuit = TseitinFactoringStrategy()
 
         bin_number = utils.to_bin_list(number.value)
         factor_length_1, factor_length_2 = FactoringSat.__factor_lengths(len(bin_number))
@@ -95,14 +109,14 @@ class FactoringSat:
         factor_1 = cnf_builder.next_variables(factor_length_1)
         factor_2 = cnf_builder.next_variables(factor_length_2)
 
-        fact_result = factoring_circuit.is_factorization(
+        fact_result = strategy.is_factorization(
             cast(List[Symbol], factor_1),
             cast(List[Symbol], factor_2),
             cast(List[Symbol], bin_number),
             cnf_builder
         )
 
-        factoring_circuit.assume(fact_result, factoring_circuit.one, cnf_builder)
+        strategy.expect_one(fact_result, cnf_builder)
 
         return FactoringSat(
             number=number,

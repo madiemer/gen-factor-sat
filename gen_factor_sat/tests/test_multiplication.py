@@ -1,8 +1,6 @@
 import pytest
 from hypothesis import given, assume
 from hypothesis.strategies import integers
-from pysat.formula import CNF
-from pysat.solvers import Solver
 
 import gen_factor_sat.tests.utils as test_utils
 from gen_factor_sat import utils

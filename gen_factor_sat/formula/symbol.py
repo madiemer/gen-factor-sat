@@ -20,7 +20,7 @@ def constant(bin_str: str) -> Constant:
     :return: the Constant
     :raises ValueError if the input is no binary value
     """
-    if bin_str == '0' or bin_str == '1':
+    if bin_str in ('0', '1'):
         return Constant(bin_str)
     else:
         raise ValueError('{0} is no constant'.format(bin_str))

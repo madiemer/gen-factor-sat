@@ -2,10 +2,10 @@ from abc import ABC
 from typing import TypeVar, cast
 
 import gen_factor_sat.circuit.tseitin.encoding as te
-from gen_factor_sat.circuit.default.circuit import Constant, constant, GeneralSimpleCircuitStrategy
+from gen_factor_sat.circuit.default.circuit import GeneralSimpleCircuitStrategy
 from gen_factor_sat.circuit.interface.circuit import GateStrategy
 from gen_factor_sat.formula.cnf import CNFBuilder
-from gen_factor_sat.formula.symbol import Symbol, Variable, variable
+from gen_factor_sat.formula.symbol import Symbol, Variable, variable, Constant, constant
 
 T = TypeVar('T')
 
@@ -13,29 +13,6 @@ T = TypeVar('T')
 class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
     zero: Constant = constant('0')
     one: Constant = constant('1')
-
-    def assume(self, symbol: Symbol, value: Constant, writer: CNFBuilder) -> Constant:
-        """
-        Assume the specified symbol has the designated value. If the evaluation
-        of the symbol yields another value the formula will be unsatisfiable.
-        As the value of the symbol is now known, the returned symbol is equivalent
-        to the specified value.
-
-        :param symbol: the symbol to which the value should be assigned
-        :param value: the value that should be assigned to the symbol
-        :param writer: the object collecting the written clauses
-        :return: the value of the symbol
-        """
-        if self.is_constant(symbol) and symbol != value:
-            writer.add_clauses({te.empty_clause()})
-        elif not self.is_constant(symbol):
-            var = cast(Variable, symbol)  # Type hint
-            if value == self.one:
-                writer.add_clauses({te.unit_clause(var)})
-            else:
-                writer.add_clauses({te.unit_clause(variable(-var))})
-
-        return value
 
     def wire_and(self, value_1: Symbol, value_2: Symbol, writer: CNFBuilder) -> Symbol:
         if self.is_constant(value_1) or self.is_constant(value_2):
@@ -55,6 +32,35 @@ class TseitinGateStrategy(GateStrategy[Symbol, CNFBuilder]):
         else:
             var = cast(Variable, value)  # Type hint
             return variable(-var)
+
+    def expect_zero(self, value: Symbol, writer: CNFBuilder) -> Symbol:
+        return self.expect(value, self.zero, writer)
+
+    def expect_one(self, value: Symbol, writer: CNFBuilder) -> Symbol:
+        return self.expect(value, self.one, writer)
+
+    def expect(self, symbol: Symbol, value: Constant, writer: CNFBuilder) -> Constant:
+        """
+        Assume the specified symbol has the expected value. If the evaluation
+        of the symbol yields another value the formula will be unsatisfiable.
+        As the value of the symbol is now known, the returned symbol is equivalent
+        to the specified value.
+
+        :param symbol: the symbol to which the value should be assigned
+        :param value: the value that should be assigned to the symbol
+        :param writer: the object collecting the written clauses
+        :return: the value of the symbol
+        """
+        if self.is_constant(symbol) and symbol != value:
+            writer.add_clauses({te.empty_clause()})
+        elif not self.is_constant(symbol):
+            var = cast(Variable, symbol)  # Type hint
+            if self.is_one(value):
+                writer.add_clauses({te.unit_clause(var)})
+            else:
+                writer.add_clauses({te.unit_clause(variable(-var))})
+
+        return value
 
     def _constant_and(self, symbol_1: Symbol, symbol_2: Symbol) -> Symbol:
         if symbol_1 == self.zero or symbol_2 == self.zero:
