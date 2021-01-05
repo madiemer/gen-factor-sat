@@ -5,11 +5,16 @@ import sys
 from gen_factor_sat.factoring_sat import FactoringSat
 
 parser = argparse.ArgumentParser(
-    prog='GenFactorSat',
+    prog='gen_factor_sat',
     description='''
     Convert the factorization of a number into a CNF. 
     The resulting CNF is represented in the DIMACS format.
-    '''
+    ''',
+    epilog='''examples:
+    gen_factor_sat number 100 --outfile factor_100.cnf
+    gen_factor_sat random --prime --error 0.001 --seed 10 --min-value 10 100 --outfile
+    ''',
+    formatter_class=argparse.RawDescriptionHelpFormatter
 )
 
 parser.add_argument('--version', action='version', version='%(prog)s v{0}'.format(FactoringSat.VERSION))
@@ -84,7 +89,7 @@ args = parser.parse_args()
 def run():
     if args.command == commands[0]:
         result = FactoringSat.factorize_number(args.value)
-        default = 'factor_number{0}.cnf'.format(result.number)
+        default = 'factor_number{0}.cnf'.format(result.number.value)
         write_cnf(result, args.outfile, default)
 
     elif args.command == commands[1]:
@@ -124,11 +129,16 @@ def write_cnf(cnf, filename, default_file):
     else:
         if not filename:
             filename = default_file
-        elif not os.path.isfile(filename):
-            if not os.path.exists(filename):
-                os.makedirs(filename)
+        else:
+            name, extension = os.path.splitext(filename)
+            if (os.path.exists(filename) and os.path.isdir(filename)) or (not extension):
+                directory = filename
+                filename = os.path.join(directory, default_file)
+            else:
+                directory = os.path.dirname(os.path.realpath(filename))
 
-            filename = os.path.join(filename, default_file)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
 
         with open(filename, 'w') as file:
             file.write(cnf.to_dimacs())
