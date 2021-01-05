@@ -9,27 +9,20 @@ The tool was created using Python 3.7.3 but should run with similar Python versi
 gen_factor_sat --help
 ```
 
+Alternatively, the application can be imported as a python package. The usage is similar to the factory methods of the FactoringSat class mimic the command line interface. However, to provide a more convenient usage when working with the results, e.g., calling a SAT-Solver directly from python, the CNF is not converted into DIMACS. Instead, the entire information is stored in the FactoringSat data class.
+
+## Modifications
+The CNF generation process can be modified by providing an alternative strategy. Note the additional strategy parameter of the factory methods. The modular design of the evaluation strategies allows exchanging small units without changing the entire implementation. This is achieved by defining dependencies between general modules rather than specific implementations. In the end, when building a specific strategy, an implementation for each required module can be mixed in (almost) independently. For an example, see the instances in the circuit module.
+
 ## Generating CNFs
-For the structured generation of multiple CNFs, the scripts create.sh and create_random.sh may be used. The former is mainly useful to generate an instance for specific numbers. For an easier configuration, the numbers are read from a configuration file. This file has to define an array of subdirectories in which the results should be written. For each directory, the numbers have to be defined manually. For the exact format please refer to the example configuration. The last command-line argument may be used to indicate that random numbers should be generated.
+For the structured generation of multiple random CNFs, the create script can be used. Therefore, a given interval is split into several subintervals. Each subinterval corresponds to a unique directory. For each subinterval, the specified number of random, prime, or composite numbers are created. The last parameter defines the error probability that the primality test may have. If set to zero, a deterministic yet slower version is applied.
 
 Usage:
 ```
-scripts/create.sh <config-file> <out-directory> <random>
+scripts/create.sh <out-directory> <start:stop:step> <random:prime:composite> <error>
 ```
 
 Example:
 ```
-scripts/create.sh scripts/config.ini out/ false
-```
-
-The other script create_random.sh can be used to generate the CNFs of random numbers. Therefore, a given interval is split into several subintervals. Each subinterval corresponds to a unique directory. For each subinterval, the specified number of prime, composite or random numbers are created. The last parameter can be used to indicate that a probabilistic prime test with the specified error probability may be used.
-
-Usage:
-```
-scripts/create_random.sh <out-directory> <start:stop:step> <random:prime:composite> <error>
-```
-
-Example:
-```
-scripts/create_random.sh out/ 10000:1000000:10 0:3:7 0.0
+scripts/create.sh out/ 10000:1000000:10 0:3:7 0.0
 ```

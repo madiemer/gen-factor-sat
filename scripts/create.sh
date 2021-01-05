@@ -1,47 +1,42 @@
 #!/bin/bash
-source $1
-OUT_DIR=$2
-GENERATE=${3:-false}
+OUT_DIR=$1
 
-function create_instances {
-    directory=$1
-    numbers=$2
+#Start:Stop:Step
+IFS=':' read -ra INTERVALS <<< $2
+start=${INTERVALS[0]}
+stop=${INTERVALS[1]}
+step=${INTERVALS[2]}
 
-    mkdir -p $directory
-    for number in ${numbers[@]}
-    do
-      python3 -m gen_factor_sat number $number -o $directory
-    done
-}
+#Random:Prime:Composite
+IFS=':' read -ra NUMBERS <<< $3
+num_rand=${NUMBERS[0]}
+num_prime=${NUMBERS[1]}
+num_comp=${NUMBERS[2]}
 
-function create_random_instances {
-    directory=$1
-    min_value=$2
-    max_value=$3
-    numbers=$4
-
-    mkdir -p $directory
-    for ((i = 0; i < $numbers; i++))
-    do
-      python3 -m gen_factor_sat random --min-value $min_value $max_value -o $directory
-    done
-}
-
+# Error probability of primality test
+ERROR=${4:-0.0}
 
 mkdir -p $OUT_DIR
-for index in "${!SUBDIRECTORIES[@]}"
+for ((min_value = $start; min_value < $stop; min_value = $min_value * $step))
 do
-  directory="${OUT_DIR}/${SUBDIRECTORIES[$index]}"
+  max_value=$(($min_value * $step))
+  factor_dir=$"${OUT_DIR}/factor_${min_value}-${max_value}"
+  mkdir -p $factor_dir
 
-  if [ "$GENERATE" = true ]
-  then
-    min_value="${MIN_VALUES[$index]}"
-    max_value="${MAX_VALUES[$index]}"
-    iterations="${ITERATIONS[$index]}"
-    create_random_instances "${directory}" "${min_value}" "${max_value}" "${iterations}"
-  else
-    numbers="${NUMBERS[$index]}"
-    create_instances "${directory}" "${numbers}"
-  fi
+  command="python3 -m gen_factor_sat random"
+  options="${max_value} --min-value ${min_value} --error ${ERROR} -o ${factor_dir}"
+
+  total=$(($num_rand + $num_prime + $num_comp))
+  for ((i = 0; i < $total; i++))
+  do
+    if ((i < $num_rand)); then
+      num_type=""
+    elif ((i < $num_rand + $num_prime)); then
+      num_type="--prime"
+    else
+      num_type="--no-prime"
+    fi
+    eval $"${command} ${options} ${num_type}"
+  done
 done
 
