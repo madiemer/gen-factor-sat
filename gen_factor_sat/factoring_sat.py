@@ -191,4 +191,4 @@ class FactoringSat:
 
             return ' '.join(filter(bool, [command, number_type_opt, seed_opt, min_value_opt, max_value_arg]))
         else:
-            return 'gen_factor_sat number {0}'.format(self.number)
+            return 'gen_factor_sat number {0}'.format(self.number.value)

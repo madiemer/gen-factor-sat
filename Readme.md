@@ -26,3 +26,14 @@ Example:
 ```
 scripts/create.sh out/ 10000:1000000:10 0:3:7 0.0
 ```
+
+## Evaluation
+In order to evaluate the difficulty, we generated 500 random formulas. Starting with numbers out of the interval [10^4, 10^5), we subsequently increased the numbers by the factor 10. For each of the resulting intervals, 50 numbers are drawn at random, of which 35 are composite and 15 are prime. In other words, we used the following command to generate the formulas:
+```
+scripts/create.sh out/ 10000:100000000000000:10 0:15:35 0.1
+```
+Note, the create script is not deterministic and will choose new numbers. To reproduce the instances used in our measurement call:
+```
+gen_factor_sat <number>
+```
+The corresponding numbers, as well as the results from the measurements, are located at results/results.csv.
