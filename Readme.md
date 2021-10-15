@@ -9,7 +9,7 @@ The tool was created using Python 3.7.3 but should run with similar Python versi
 gen_factor_sat --help
 ```
 
-Alternatively, the application can be imported as a python package. The usage is similar to the factory methods of the FactoringSat class mimic the command line interface. However, to provide a more convenient usage when working with the results, e.g., calling a SAT-Solver directly from python, the CNF is not converted into DIMACS. Instead, the entire information is stored in the FactoringSat data class.
+Alternatively, the application can be imported as a python package. The usage is similar, as the factory methods of the FactoringSat class mimic the command line interface. However, to provide a more convenient usage when working with the results, e.g., calling a SAT-Solver directly from python, the CNF is not converted into DIMACS. Instead, the entire information is stored in the FactoringSat data class.
 
 ## Modifications
 The CNF generation process can be modified by providing an alternative strategy. Note the additional strategy parameter of the factory methods. The modular design of the evaluation strategies allows exchanging small units without changing the entire implementation. This is achieved by defining dependencies between general modules rather than specific implementations. In the end, when building a specific strategy, an implementation for each required module can be mixed in (almost) independently. For an example, see the instances in the circuit module.
@@ -34,6 +34,6 @@ scripts/create.sh out/ 10000:100000000000000:10 0:15:35 0.1
 ```
 Note, the create script is not deterministic and will choose new numbers. To reproduce the instances used in our measurement call:
 ```
-gen_factor_sat <number>
+gen_factor_sat number <number>
 ```
 The corresponding numbers, as well as the results from the measurements, are located at results/results.csv.

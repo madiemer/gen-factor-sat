@@ -110,6 +110,9 @@ class WallaceTreeStrategy(
                 yield weight_sum, product
 
     def _add_layer(self, weight: int, products: List[T], writer: W) -> List[Tuple[int, T]]:
+        if not products:
+            return []
+
         if len(products) == 1:
             return [(weight, products[0])]
 
@@ -123,7 +126,4 @@ class WallaceTreeStrategy(
             product_1, product_2, product_3 = products[:3]
             sum, carry = self.full_adder(product_1, product_2, product_3, writer)
 
-            return [(weight, sum), (weight + 1, carry)] + [(weight, product) for product in products[3:]]
-
-        else:
-            raise ValueError('Cannot add a layer for an empty product')
+            return [(weight, sum), (weight + 1, carry)] + self._add_layer(weight, products[3:], writer)
