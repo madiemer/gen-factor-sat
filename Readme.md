@@ -1,4 +1,7 @@
 # GenFactorSat
+
+![example workflow](https://github.com/madiemer/gen-factor-sat/actions/workflows/pytest.yml/badge.svg)
+
 Generate CNF formulas based on the factoring problem to test SAT-Solvers. The application can generate random numbers, but numbers may also be specified. The main part covers the reduction of the factoring problem to SAT. As an intermediate step, the problem is converted into CIRCUIT-SAT. This conversion is achieved by creating a circuit to multiply factor candidates and comparing the resulting product to the given number. Finally, the Tseitin transformation is used to convert the circuit into a CNF.
 
 The resulting formula is satisfiable if and only if there exist two non-trivial factors of the given number. Additionally, based on the way the formula is constructed, the factors can be retrieved from a satisfying assignment. Therefore, the variables representing the input of the circuit, i.e. the factor candidates, are documented.
